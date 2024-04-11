@@ -112,6 +112,13 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_gnocchi:.*/enable_gnocchi: "yes"/' /etc/kolla/globals.yml
         #sed -i 's/#kolla_external_vip_address.*/kolla_external_vip_address: "10.0.10.250"/' /etc/kolla/globals.yml
         #sed -i 's/#kolla_external_vip_interface.*/kolla_external_vip_interface: "eth4"/' /etc/kolla/globals.yml
+
+        # Mis cambios
+        sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_glance:.*/enable_glance: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_glance_image_cache:.*/enable_glance_image_cache: "yes"/' /etc/kolla/globals.yml
+        sed -i '/^enable_glance_image_cache/a\glance_cache_max_size: "3955484928"' /etc/kolla/globals.yml
+
         pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2023.2
     </exec>
     <filetree seq="config-admin2" root="/root/kolla/share/kolla-ansible/ansible/inventory/">conf/admin/multinode</filetree>

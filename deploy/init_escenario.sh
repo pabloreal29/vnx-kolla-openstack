@@ -6,8 +6,8 @@
 # sudo vnx -f openstack_lab.xml -v --create
 # sudo vnx -f openstack_lab.xml -x start-all,load-img
 
-# #Habilitar NAT para tener conectividad con el exterior
-# sh ../habilitar-nat.sh
+#Habilitar NAT para tener conectividad con el exterior
+sh ../habilitar-nat.sh
 
 # #Crear usuario
 # openstack --os-cloud kolla-admin user create myuser --project admin --password xxxx

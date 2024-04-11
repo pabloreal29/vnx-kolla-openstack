@@ -83,3 +83,24 @@ sudo vnx -f $OSTACKLAB -x create-demo-vm2,create-demo-vm3,create-demo-vm4
 sudo vnx -f $OSTACKLAB -x create-vlan-demo-scenario
 sudo vnx -f $OSTACKVLANLAB --create
 ```
+
+### Cambios
+
+Para hacer cambios no hace falta borrar el escenario, solo editar el fichero /etc/kolla/globals.yml. Para ello, seguir los siguientes pasos:
+
+1. Realizar cambios dentro de openstack_kolla_ansible_2023_2.xml, mirar el apartado Mis cambios:
+
+2. Ejecutar los cambios sobre el escenario: 
+```bash
+sudo vnx -f openstack_kolla_ansible_2023_2.xml -x config-admin
+```
+
+3. Acceder al nodo admin:
+```bash
+ssh root@admin
+```
+
+4. Volver a desplegar OpenStack, simplemente se actualiza el escenario con los nuevos cambios, el resto se mantiene: 
+```bash
+./deploy-ostack
+```
