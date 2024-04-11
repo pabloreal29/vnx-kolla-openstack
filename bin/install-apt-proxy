@@ -1,0 +1,8 @@
+#!/bin/bash
+
+ssh root@admin apt install auto-apt-proxy
+ssh root@controller apt install auto-apt-proxy
+ssh root@network apt install auto-apt-proxy
+ssh root@compute1 apt install auto-apt-proxy
+ssh root@compute2 apt install auto-apt-proxy
+ssh root@compute3 apt install auto-apt-proxy

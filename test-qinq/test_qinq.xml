@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+
+~~~~~~~~~~~~~~~~~~~~
+VNX Sample scenarios
+~~~~~~~~~~~~~~~~~~~~
+
+Name:        simple_lxc_ubuntu64
+Description: Just one Ubuntu virtual machine connected to a Network named Net0 with address 10.1.0.4. 
+             The host has an interface in Net0 with address 10.1.0.1  
+             This simple scenario is supposed to be used for testing the different 
+             types of virtual machines supported by VNX. You can start several simple_*.xml
+             scenarios and test the connectivity among virtual machines and the host, as all
+             scenarios share the same "Net0" network.  
+
+This file is part of the Virtual Networks over LinuX (VNX) Project distribution. 
+(www: http://www.dit.upm.es/vnx - e-mail: vnx@dit.upm.es) 
+
+Departamento de Ingenieria de Sistemas Telematicos (DIT)
+Universidad Politecnica de Madrid
+SPAIN
+
+-->
+
+
+<vnx xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:noNamespaceSchemaLocation="/usr/share/xml/vnx/vnx-2.00.xsd">
+  <global>
+    <version>2.0</version>
+    <scenario_name>simple_lxc_ubuntu64</scenario_name>
+    <automac offset="4"/>
+    <!--vm_mgmt type="none" /!-->
+    <vm_mgmt type="private" network="10.250.0.0" mask="24" offset="12">
+       <host_mapping />
+    </vm_mgmt> 
+    <vm_defaults>
+        <console id="0" display="no"/>
+        <console id="1" display="yes"/>
+    </vm_defaults>
+  </global>
+    
+  <net name="Net0" mode="openvswitch" />
+  <net name="virbr0" mode="virtual_bridge" managed="no"/>
+  
+  <vm name="h1" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
+    <if id="1" net="Net0">
+      <vlan trunk='yes'>
+          <tag id='30'/>
+      </vlan>
+      <!--ipv4>10.1.0.4/24</ipv4-->
+    </if>
+    <if id="2" net="virbr0">
+      <ipv4>dhcp</ipv4>
+    </if>
+
+    <!--filetree seq="copyfile" root="/root/copyfile.txt" perms="644">conf/on_boot.txt</filetree-->
+    <exec seq="on_boot" type="verbatim">
+	sudo ip link add link eth1 name eth1.1000 type vlan id 1000 proto 802.1ad
+        sudo ip addr add 10.1.2.1/24 dev eth1.1000
+        sudo ip link set eth1.1000 up
+    </exec>
+  </vm>
+
+  <vm name="h2" type="lxc" exec_mode="lxc-attach" arch="x86_64">
+    <filesystem type="cow">/usr/share/vnx/filesystems/rootfs_lxc_ubuntu64</filesystem>
+    <if id="1" net="Net0">
+      <vlan>
+          <tag id='10'/>
+          <tag id='20'/>
+          <tag id='30'/>
+      </vlan>
+      <!--ipv4>10.1.0.4/24</ipv4-->
+    </if>
+    <if id="2" net="virbr0">
+      <ipv4>dhcp</ipv4>
+    </if>
+
+    <!--filetree seq="copyfile" root="/root/copyfile.txt" perms="644">conf/on_boot.txt</filetree-->
+    <exec seq="on_boot" type="verbatim">
+        sudo ip link add link eth1 name vlannet type vlan id 30 proto 802.1ad
+        sudo ip link set vlannet up
+        sudo ip link add link vlannet name vlannet.1000 type vlan id 1000 proto 802.1ad
+        sudo ip addr add 10.1.2.2/24 dev vlannet.1000
+        sudo ip link set vlannet.1000 up
+    </exec>
+  </vm>
+
+  <host>
+    <exec seq="on_boot" type="verbatim">
+	sudo ovs-vsctl set port h1-e1 vlan_mode=dot1q-tunnel tag=30 cvlans=1000
+    </exec>
+  </host>
+</vnx>

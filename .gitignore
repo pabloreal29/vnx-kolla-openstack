@@ -1,0 +1,2 @@
+# Do not stage Kolla venv
+.kolla-venv

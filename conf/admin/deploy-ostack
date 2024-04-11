@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if [ ! -z "$1" ]; then
+    INVENTORY="/root/kolla/share/kolla-ansible/ansible/inventory/multinode-$1"
+else
+    INVENTORY="/root/kolla/share/kolla-ansible/ansible/inventory/multinode"
+fi
+
+source /root/kolla/bin/activate
+kolla-ansible -i $INVENTORY --configdir /etc/kolla/ bootstrap-servers
+kolla-ansible -i $INVENTORY --configdir /etc/kolla/ prechecks
+kolla-ansible -i $INVENTORY --configdir /etc/kolla/ deploy
+kolla-ansible post-deploy

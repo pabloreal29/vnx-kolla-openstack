@@ -1,0 +1,63 @@
+#!/bin/bash
+
+#Crear escenario base de Openstack
+sudo wget https://idefix.dit.upm.es/download/cnvr/openstack_lab-antelope_4n_classic_ovs-v03-with-rootfs.tgz
+sudo vnx --unpack openstack_lab-antelope_4n_classic_ovs-v03-with-rootfs.tgz
+cd openstack_lab-antelope_4n_classic_ovs-v03
+
+#Borrar la línea que incluye la ruta /home/giros dentro de ./filesystems/rootfs_lxc_ubuntu64-ostack-controller/config
+sudo sed -i '/lxc.mount.entry = \/home\/giros\/vnx-lab-openstack-antelope\/shared \/root\/.vnx\/scenarios\/openstack_lab-antelope\/vms\/controller\/mnt\/rootfs\/\/root\/shared none bind 0 0/d' ./filesystems/rootfs_lxc_ubuntu64-ostack-controller/config
+
+sudo vnx -f openstack_lab.xml -v --create
+sudo vnx -f openstack_lab.xml -x start-all,load-img
+
+#Habilitar NAT para tener conectividad con el exterior
+sh ../habilitar-nat.sh
+
+#Crear usuario
+source bin/admin-openrc.sh
+openstack user create cnvr --project admin --password xxxx
+openstack role add admin --user cnvr --project admin 
+source /home/pabloreal/tfm_openstack/cnvr-openrc.sh
+
+#Crear parejas de claves
+mkdir -p ./tmp/keys
+openstack keypair create admin > ./tmp/keys/admin
+openstack keypair create bbdd > ./tmp/keys/bbdd
+openstack keypair create s1 > ./tmp/keys/s1
+openstack keypair create s2 > ./tmp/keys/s2
+openstack keypair create s3 > ./tmp/keys/s3
+
+#Proteger las claves privadas para que solo las pueda utilizar el owner
+chmod 700 ./tmp/keys/admin
+chmod 700 ./tmp/keys/bbdd
+chmod 700 ./tmp/keys/s1
+chmod 700 ./tmp/keys/s2
+chmod 700 ./tmp/keys/s3
+
+#Importar imagenes de las VMs
+openstack image create "focal-servers-vnx" --file /home/pabloreal/tfm_openstack/servers_image.qcow2 --disk-format qcow2 --container-format bare --public
+openstack image create "focal-bbdd-vnx" --file /home/pabloreal/tfm_openstack/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public
+openstack image create "focal-admin-vnx" --file /home/pabloreal/tfm_openstack/admin_image.qcow2 --disk-format qcow2 --container-format bare --public
+
+#Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
+openstack flavor create m1.large --vcpus 3 --ram 1024 --disk 5
+
+#Crear el stack con todos los elementos del escenario
+# openstack stack create -t /home/p.realb/Desktop/CNVR/TF/escenarioTF.yml stackTF
+openstack stack create -t /home/pabloreal/tfm_openstack/escenarioTF.yml stackTF
+
+#Esperar a que se cree el router del escenario antes de asignarle el firewall 
+sleep 120
+
+#Configuración del firewall
+router_port=$(openstack port list --router firewall_router --fixed-ip ip-address=10.1.1.1 -c ID -f value)
+openstack firewall group rule create --protocol tcp --destination-ip-address 10.1.1.57 --destination-port 2022 --action allow --name ssh_admin 
+openstack firewall group rule create --protocol tcp --destination-ip-address 10.1.1.23 --destination-port 80 --action allow --name www_lb 
+openstack firewall group rule create --protocol any --source-ip-address 10.1.1.0/24 --action allow --name server_connection 
+openstack firewall group policy create --firewall-rule ssh_admin --firewall-rule www_lb grupo1_policy_ingress 
+openstack firewall group policy create --firewall-rule server_connection grupo1_policy_egress
+openstack firewall group create --ingress-firewall-policy grupo1_policy_ingress --egress-firewall-policy  grupo1_policy_egress --port $router_port --name grupo1_firewall_group
+
+# #Añadir servidores extra con autoescalado al escenario
+# openstack stack create -t /home/p.realb/Desktop/CNVR/TF/autoScalingGroup.yml stackExtra

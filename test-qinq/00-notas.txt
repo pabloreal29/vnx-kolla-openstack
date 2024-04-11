@@ -1,0 +1,23 @@
+Ver: https://developers.redhat.com/blog/2017/06/06/open-vswitch-overview-of-802-1ad-qinq-support
+
+Activar QinQ:
+
+ovs-vsctl set Open_vSwitch . other_config:vlan-limit=2
+ovs-appctl revalidator/purge
+
+/usr/bin/ovs-vsctl set port h1-e1 tag=30
+/usr/bin/ovs-vsctl set port h2-e1 trunk=10,20,30
+
+h1:
+sudo ip link add link eth1 name eth1.1000 type vlan id 1000 proto 802.1ad
+sudo ip addr add 10.1.2.1/24 dev eth1.1000
+sudo ip link set eth1.1000 up
+
+h2:
+sudo ip link add link eth1 name vlannet type vlan id 30 proto 802.1ad
+sudo ip link set vlannet up
+sudo ip link add link vlannet name vlannet.1000 type vlan id 1000 proto 802.1ad
+sudo ip addr add 10.1.2.2/24 dev vlannet.1000
+sudo ip link set vlannet.1000 up
+
+sudo ovs-vsctl set port h1-e1 vlan_mode=dot1q-tunnel tag=30 cvlans=1000
