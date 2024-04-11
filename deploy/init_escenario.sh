@@ -1,24 +1,18 @@
 #!/bin/bash
 
-#Crear escenario base de Openstack
-sudo wget https://idefix.dit.upm.es/download/cnvr/openstack_lab-antelope_4n_classic_ovs-v03-with-rootfs.tgz
-sudo vnx --unpack openstack_lab-antelope_4n_classic_ovs-v03-with-rootfs.tgz
-cd openstack_lab-antelope_4n_classic_ovs-v03
-
 #Borrar la línea que incluye la ruta /home/giros dentro de ./filesystems/rootfs_lxc_ubuntu64-ostack-controller/config
-sudo sed -i '/lxc.mount.entry = \/home\/giros\/vnx-lab-openstack-antelope\/shared \/root\/.vnx\/scenarios\/openstack_lab-antelope\/vms\/controller\/mnt\/rootfs\/\/root\/shared none bind 0 0/d' ./filesystems/rootfs_lxc_ubuntu64-ostack-controller/config
+# sudo sed -i '/lxc.mount.entry = \/home\/giros\/vnx-lab-openstack-antelope\/shared \/root\/.vnx\/scenarios\/openstack_lab-antelope\/vms\/controller\/mnt\/rootfs\/\/root\/shared none bind 0 0/d' ./filesystems/rootfs_lxc_ubuntu64-ostack-controller/config
 
-sudo vnx -f openstack_lab.xml -v --create
-sudo vnx -f openstack_lab.xml -x start-all,load-img
+# sudo vnx -f openstack_lab.xml -v --create
+# sudo vnx -f openstack_lab.xml -x start-all,load-img
 
-#Habilitar NAT para tener conectividad con el exterior
-sh ../habilitar-nat.sh
+# #Habilitar NAT para tener conectividad con el exterior
+# sh ../habilitar-nat.sh
 
-#Crear usuario
-source bin/admin-openrc.sh
-openstack user create cnvr --project admin --password xxxx
-openstack role add admin --user cnvr --project admin 
-source /home/pabloreal/tfm_openstack/cnvr-openrc.sh
+# #Crear usuario
+# openstack --os-cloud kolla-admin user create myuser --project admin --password xxxx
+# openstack --os-cloud kolla-admin role add admin --user myuser --project admin 
+# source deploy/myuser-openrc.sh
 
 #Crear parejas de claves
 mkdir -p ./tmp/keys
@@ -36,16 +30,15 @@ chmod 700 ./tmp/keys/s2
 chmod 700 ./tmp/keys/s3
 
 #Importar imagenes de las VMs
-openstack image create "focal-servers-vnx" --file /home/pabloreal/tfm_openstack/servers_image.qcow2 --disk-format qcow2 --container-format bare --public
-openstack image create "focal-bbdd-vnx" --file /home/pabloreal/tfm_openstack/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public
-openstack image create "focal-admin-vnx" --file /home/pabloreal/tfm_openstack/admin_image.qcow2 --disk-format qcow2 --container-format bare --public
+openstack image create "focal-servers-vnx" --file /home/pabloreal/openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public
+openstack image create "focal-bbdd-vnx" --file /home/pabloreal/openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public
+openstack image create "focal-admin-vnx" --file /home/pabloreal/openstack-images/admin_image.qcow2 --disk-format qcow2 --container-format bare --public
 
 #Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
 openstack flavor create m1.large --vcpus 3 --ram 1024 --disk 5
 
 #Crear el stack con todos los elementos del escenario
-# openstack stack create -t /home/p.realb/Desktop/CNVR/TF/escenarioTF.yml stackTF
-openstack stack create -t /home/pabloreal/tfm_openstack/escenarioTF.yml stackTF
+openstack stack create -t deploy/escenarioTF.yml stackTF
 
 #Esperar a que se cree el router del escenario antes de asignarle el firewall 
 sleep 120
