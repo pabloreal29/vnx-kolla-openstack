@@ -135,6 +135,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
     </exec>
 
+    <exec seq="config-controller" type="verbatim">
+        ssh -o StrictHostKeyChecking=accept-new root@controller
+        sed -i '/^\[glance_store\]/a\image_size_cap = 10737418240  # 10 GB' /etc/kolla/glance-api/glance-api.conf
+        systemctl restart glance-api
+    </exec>
+
     <exec seq="load-img" type="verbatim">
 
         source /root/kolla/bin/activate
