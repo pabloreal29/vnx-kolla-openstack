@@ -32,7 +32,7 @@ sudo vnx -f $OSTACKLAB -x config-admin
 2. OpenStack cluster configuration (execution of Kolla playbooks):
 ```bash
 ssh root@admin
-./deploy-ostack    # Use "./deploy-ostack 3n" for implementing network functionallity in compute1 node (no network node)
+./deploy-ostack    # Tarda 15 minutos. Use "./deploy-ostack 3n" for implementing network functionallity in compute1 node (no network node)
 ```
 Note: deploy-ostack scripts executes the following commands:
 ```bash

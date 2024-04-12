@@ -122,8 +122,8 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #sed -i 's/#kolla_external_vip_interface.*/kolla_external_vip_interface: "eth4"/' /etc/kolla/globals.yml
 
         # Mis cambios
-        sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_glance:.*/enable_glance: "yes"/' /etc/kolla/globals.yml
+        <!-- sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_glance:.*/enable_glance: "yes"/' /etc/kolla/globals.yml -->
         <!-- sed -i 's/#enable_glance_image_cache:.*/enable_glance_image_cache: "yes"/' /etc/kolla/globals.yml
         sed -i '/^enable_glance_image_cache/a\glance_cache_max_size: "3955484928"' /etc/kolla/globals.yml -->
 
@@ -143,6 +143,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
     </exec>
 
+    <!-- Intento de Pablo fallido (ejecutar des de host no desde admin) -->
     <exec seq="config-controller" type="verbatim">
         ssh -o StrictHostKeyChecking=accept-new root@controller
         sed -i '/^\[glance_store\]/a\image_size_cap = 10737418240  # 10 GB' /etc/kolla/glance-api/glance-api.conf
@@ -297,7 +298,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="controller" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>15G</mem> <!--Tamaño original: 4G -->
+    <mem>4G</mem> <!--Esta memoria es solo la siguiente: tmpfs 7,4G 0 7,4G 0% /dev/shm. Tamaño original: 4G -->
     <!--console id="0" display="yes"/-->
 
     <if id="1" net="MgmtNet">
