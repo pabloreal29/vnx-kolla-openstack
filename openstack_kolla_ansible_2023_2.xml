@@ -68,6 +68,14 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <filetree seq="on_boot" root="/root/.ssh/">conf/ssh/id_rsa</filetree>
     <filetree seq="on_boot" root="/tmp/">conf/admin/hosts</filetree>
     <filetree seq="on_boot" root="/root/">conf/admin/deploy-ostack</filetree>
+
+
+    <!-- Más cambios de Pablo para subir al nodo Admin sus imágenes -->
+    <filetree seq="on_boot" root="/tmp/">../openstack-images/servers_image.qcow2</filetree>
+    <filetree seq="on_boot" root="/tmp/">../openstack-images/admin_image.qcow2</filetree>
+    <filetree seq="on_boot" root="/tmp/">../openstack-images/bbdd_image.qcow2</filetree>
+
+
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
         apt-get update
@@ -116,8 +124,8 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         # Mis cambios
         sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_glance:.*/enable_glance: "yes"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_glance_image_cache:.*/enable_glance_image_cache: "yes"/' /etc/kolla/globals.yml
-        sed -i '/^enable_glance_image_cache/a\glance_cache_max_size: "3955484928"' /etc/kolla/globals.yml
+        <!-- sed -i 's/#enable_glance_image_cache:.*/enable_glance_image_cache: "yes"/' /etc/kolla/globals.yml
+        sed -i '/^enable_glance_image_cache/a\glance_cache_max_size: "3955484928"' /etc/kolla/globals.yml -->
 
         pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2023.2
     </exec>
@@ -152,6 +160,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         openstack flavor show m1.smaller >/dev/null 2>&amp;1 || openstack flavor create --id 6 --vcpus 1 --ram 512 --disk 3 m1.smaller
         #openstack flavor show m1.octavia >/dev/null 2>&amp;1 || openstack flavor create --id 100 --vcpus 1 --ram 1024 --disk 5 m1.octavia --private --project service
 
+        # Imagenes escenario Pablo 
+        openstack image create "focal-servers-vnx" --file /tmp/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+        openstack image create "focal-bbdd-vnx" --file /tmp/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+        openstack image create "focal-admin-vnx" --file /tmp/admin_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+        rm /tmp/admin_image.qcow2 /tmp/bbdd_image.qcow2 /tmp/servers_image.qcow2
+
         # Cirros image
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/cirros-0.3.4-x86_64-disk-vnx.qcow2
         openstack image create "cirros-0.3.4-x86_64-vnx" --file /tmp/images/cirros-0.3.4-x86_64-disk-vnx.qcow2 --disk-format qcow2 --container-format bare --public --progress
@@ -166,9 +180,10 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         # Ubuntu image (jammy,22.04)
         rm -f /tmp/images/jammy-server-cloudimg-amd64-vnx.qcow2
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/jammy-server-cloudimg-amd64-vnx.qcow2
-	openstack image create "jammy-server-cloudimg-amd64-vnx" --file /tmp/images/jammy-server-cloudimg-amd64-vnx.qcow2 --disk-format qcow2 --container-format bare --public --progress
+	      openstack image create "jammy-server-cloudimg-amd64-vnx" --file /tmp/images/jammy-server-cloudimg-amd64-vnx.qcow2 --disk-format qcow2 --container-format bare --public --progress
         rm /tmp/images/jammy-server-cloudimg-amd64-vnx.qcow2
-
+        
+        
     </exec>
 
     <exec seq="create-extnet" type="verbatim">
@@ -282,7 +297,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="controller" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>4G</mem>
+    <mem>15G</mem> <!--Tamaño original: 4G -->
     <!--console id="0" display="yes"/-->
 
     <if id="1" net="MgmtNet">
