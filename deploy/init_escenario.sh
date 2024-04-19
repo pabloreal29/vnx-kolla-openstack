@@ -9,19 +9,13 @@
 #Habilitar NAT para tener conectividad con el exterior
 source deploy/habilitar-nat.sh
 
-# #Crear usuario
-# openstack --os-cloud kolla-admin user create myuser --project admin --password xxxx
-# openstack --os-cloud kolla-admin role add admin --user myuser --project admin 
-# source deploy/myuser-openrc.sh
-
-# # Modificar el tamaño maximo permitido por Glance para las imagenes, dentro del nodo controller
-# ssh root@controller << EOF
-# sed -i '/^\[glance_store\]/a\image_size_cap = 10737418240  # 10 GB' /etc/kolla/glance-api/glance-api.conf
-# sudo systemctl restart kolla-glance_api-container.service
-# exit
-# EOF
+#Crear usuario
+openstack --os-cloud kolla-admin user create myuser --project admin --password xxxx
+openstack --os-cloud kolla-admin role add admin --user myuser --project admin 
+source deploy/myuser-openrc.sh
 
 #Crear parejas de claves
+rm -rf ./tmp/keys
 mkdir -p ./tmp/keys
 openstack keypair create admin > ./tmp/keys/admin
 openstack keypair create bbdd > ./tmp/keys/bbdd
@@ -37,15 +31,18 @@ chmod 700 ./tmp/keys/s2
 chmod 700 ./tmp/keys/s3
 
 #Importar imagenes de las VMs
-openstack image create "focal-servers-vnx" --file /home/pabloreal/openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public
-openstack image create "focal-bbdd-vnx" --file /home/pabloreal/openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public
-openstack image create "focal-admin-vnx" --file /home/pabloreal/openstack-images/admin_image.qcow2 --disk-format qcow2 --container-format bare --public
+openstack image create "focal-servers-vnx" --file /home/pabloreal/openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create "focal-bbdd-vnx" --file /home/pabloreal/openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create "focal-admin-vnx" --file /home/pabloreal/openstack-images/admin_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 
 #Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
-openstack flavor create m1.large --vcpus 3 --ram 1024 --disk 5
+openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 
 #Crear el stack con todos los elementos del escenario
 openstack stack create -t deploy/escenarioTF.yml stackTF
+
+# # Borrar el stack
+# openstack stack delete -y stackTF
 
 #Esperar a que se cree el router del escenario antes de asignarle el firewall 
 sleep 120

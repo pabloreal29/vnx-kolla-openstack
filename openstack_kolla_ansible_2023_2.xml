@@ -122,6 +122,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #sed -i 's/#kolla_external_vip_interface.*/kolla_external_vip_interface: "eth4"/' /etc/kolla/globals.yml
 
         # Mis cambios
+        <!-- sed -i 's/#enable_swift.*/enable_swift: "yes"/' /etc/kolla/globals.yml -->
         <!-- sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_glance:.*/enable_glance: "yes"/' /etc/kolla/globals.yml -->
         <!-- sed -i 's/#enable_glance_image_cache:.*/enable_glance_image_cache: "yes"/' /etc/kolla/globals.yml
@@ -143,12 +144,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
     </exec>
 
-    <!-- Intento de Pablo fallido (ejecutar des de host no desde admin) -->
-    <exec seq="config-controller" type="verbatim">
+    <!-- Intento de Pablo fallido (ejecutar desde host no desde admin) -->
+    <!-- <exec seq="config-controller" type="verbatim">
         ssh -o StrictHostKeyChecking=accept-new root@controller
         sed -i '/^\[glance_store\]/a\image_size_cap = 10737418240  # 10 GB' /etc/kolla/glance-api/glance-api.conf
         systemctl restart glance-api
-    </exec>
+    </exec> -->
 
     <exec seq="load-img" type="verbatim">
 
@@ -162,10 +163,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #openstack flavor show m1.octavia >/dev/null 2>&amp;1 || openstack flavor create --id 100 --vcpus 1 --ram 1024 --disk 5 m1.octavia --private --project service
 
         # Imagenes escenario Pablo 
-        openstack image create "focal-servers-vnx" --file /tmp/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-        openstack image create "focal-bbdd-vnx" --file /tmp/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-        openstack image create "focal-admin-vnx" --file /tmp/admin_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-        rm /tmp/admin_image.qcow2 /tmp/bbdd_image.qcow2 /tmp/servers_image.qcow2
+        wget -P /tmp/images http://10.0.0.1:8000/servers_image.qcow2
+        openstack image create "focal-servers-vnx" --file /tmp/images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+        rm /tmp/images/servers_image.qcow2
 
         # Cirros image
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/cirros-0.3.4-x86_64-disk-vnx.qcow2
@@ -298,7 +298,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="controller" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>4G</mem> <!--Esta memoria es solo la siguiente: tmpfs 7,4G 0 7,4G 0% /dev/shm. Tamaño original: 4G -->
+    <mem>4G</mem> <!--Esta memoria es RAM, no disco-->
     <!--console id="0" display="yes"/-->
 
     <if id="1" net="MgmtNet">
