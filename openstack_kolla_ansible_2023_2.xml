@@ -122,6 +122,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #sed -i 's/#kolla_external_vip_interface.*/kolla_external_vip_interface: "eth4"/' /etc/kolla/globals.yml
 
         # Mis cambios
+        <!-- #enable_neutron_port_forwarding: "no" -->
+        <!-- #enable_nova_ssh: "yes" -->
+        
         <!-- sed -i 's/#enable_swift.*/enable_swift: "yes"/' /etc/kolla/globals.yml -->
         <!-- sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_glance:.*/enable_glance: "yes"/' /etc/kolla/globals.yml -->
