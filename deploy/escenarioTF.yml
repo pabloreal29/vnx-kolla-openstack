@@ -34,7 +34,6 @@ resources:
       name: subnet2
       network_id: {get_resource: net2}
       cidr: 10.1.2.0/24
-      gateway_ip: 10.1.2.1
       allocation_pools:
         - start: 10.1.2.2
           end: 10.1.2.100

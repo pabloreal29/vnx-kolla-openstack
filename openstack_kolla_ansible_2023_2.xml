@@ -121,17 +121,17 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #sed -i 's/#kolla_external_vip_address.*/kolla_external_vip_address: "10.0.10.250"/' /etc/kolla/globals.yml
         #sed -i 's/#kolla_external_vip_interface.*/kolla_external_vip_interface: "eth4"/' /etc/kolla/globals.yml
 
-        <!-- Pruebas para habilitar SSH en el Puerto 2022 -->
+        <!-- Pruebas para habilitar SSH en el Puerto 2022, no se si es necesario todo esto -->
+        sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_neutron:.*/enable_neutron: "{{ enable_openstack_core | bool }}"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_nova:.*/enable_nova: "{{ enable_openstack_core | bool }}"/' /etc/kolla/globals.yml
         sed -i 's/#enable_neutron_port_forwarding:.*/enable_neutron_port_forwarding: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_nova_ssh:.*/enable_nova_ssh: "yes"/' /etc/kolla/globals.yml
-
         sed -i 's/#enable_neutron_bgp_dragent:.*/enable_neutron_bgp_dragent: "yes"/' /etc/kolla/globals.yml
-        
-        <!-- sed -i 's/#enable_swift.*/enable_swift: "yes"/' /etc/kolla/globals.yml -->
-        <!-- sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_glance:.*/enable_glance: "yes"/' /etc/kolla/globals.yml -->
-        <!-- sed -i 's/#enable_glance_image_cache:.*/enable_glance_image_cache: "yes"/' /etc/kolla/globals.yml
-        sed -i '/^enable_glance_image_cache/a\glance_cache_max_size: "3955484928"' /etc/kolla/globals.yml -->
+
+        <!-- Añadido por David para cambiar MTU a 1400 y así poder acceder por SSH-->
+        sed -i -e 's/network_vlan_ranges =.*/network_vlan_ranges = physnet1/' /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/ml2_conf.ini.j2
+        echo 'dhcp-option-force=26,1400' >> /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/dnsmasq.conf.j2
 
         pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2023.2
     </exec>
