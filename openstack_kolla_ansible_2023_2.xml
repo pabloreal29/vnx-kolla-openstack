@@ -71,9 +71,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
 
     <!-- Más cambios de Pablo para subir al nodo Admin sus imágenes -->
-    <filetree seq="on_boot" root="/tmp/">../openstack-images/servers_image.qcow2</filetree>
+    <!-- <filetree seq="on_boot" root="/tmp/">../openstack-images/servers_image.qcow2</filetree>
     <filetree seq="on_boot" root="/tmp/">../openstack-images/admin_image.qcow2</filetree>
-    <filetree seq="on_boot" root="/tmp/">../openstack-images/bbdd_image.qcow2</filetree>
+    <filetree seq="on_boot" root="/tmp/">../openstack-images/bbdd_image.qcow2</filetree> -->
 
 
     <exec seq="on_boot" type="verbatim">
@@ -121,9 +121,11 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #sed -i 's/#kolla_external_vip_address.*/kolla_external_vip_address: "10.0.10.250"/' /etc/kolla/globals.yml
         #sed -i 's/#kolla_external_vip_interface.*/kolla_external_vip_interface: "eth4"/' /etc/kolla/globals.yml
 
-        # Mis cambios
-        <!-- #enable_neutron_port_forwarding: "no" -->
-        <!-- #enable_nova_ssh: "yes" -->
+        <!-- Pruebas para habilitar SSH en el Puerto 2022 -->
+        sed -i 's/#enable_neutron_port_forwarding:.*/enable_neutron_port_forwarding: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_nova_ssh:.*/enable_nova_ssh: "yes"/' /etc/kolla/globals.yml
+
+        sed -i 's/#enable_neutron_bgp_dragent:.*/enable_neutron_bgp_dragent: "yes"/' /etc/kolla/globals.yml
         
         <!-- sed -i 's/#enable_swift.*/enable_swift: "yes"/' /etc/kolla/globals.yml -->
         <!-- sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml

@@ -46,6 +46,7 @@ kolla-ansible post-deploy
  - admin-openrc.sh: shellscript that populate environment variables with credentials and other data
  - clouds.yaml: this file can be copied to /etc/openstack or $HOME/.config/openstack directories to allow the execution of openstack client commands using "--os-cloud=kolla-admin" option. For example:
 ```bash
+rm -rf $HOME/.config/openstack/
 mkdir $HOME/.config/openstack/
 scp root@admin:/etc/kolla/clouds.yaml $HOME/.config/openstack/
 openstack --os-cloud kolla-admin service list
