@@ -129,6 +129,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_nova_ssh:.*/enable_nova_ssh: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_neutron_bgp_dragent:.*/enable_neutron_bgp_dragent: "yes"/' /etc/kolla/globals.yml
 
+        <!-- Habilitar Octavia para el Load Balancer -->
+        sed -i 's/#enable_octavia:.*/enable_octavia: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_redis:.*/enable_redis: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_horizon_octavia:.*/enable_horizon_octavia: "{{ enable_octavia | bool }}"/' /etc/kolla/globals.yml
+        sed -i 's/#octavia_auto_configure:.*/octavia_auto_configure: yes/' /etc/kolla/globals.yml
+
         <!-- Añadido por David para cambiar MTU a 1400 y así poder acceder por SSH-->
         sed -i -e 's/network_vlan_ranges =.*/network_vlan_ranges = physnet1/' /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/ml2_conf.ini.j2
         echo 'dhcp-option-force=26,1400' >> /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/dnsmasq.conf.j2
@@ -168,9 +174,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #openstack flavor show m1.octavia >/dev/null 2>&amp;1 || openstack flavor create --id 100 --vcpus 1 --ram 1024 --disk 5 m1.octavia --private --project service
 
         # Imagenes escenario Pablo 
-        wget -P /tmp/images http://10.0.0.1:8000/servers_image.qcow2
-        openstack image create "focal-servers-vnx" --file /tmp/images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-        rm /tmp/images/servers_image.qcow2
+        #wget -P /tmp/images http://10.0.0.1:8000/servers_image.qcow2
+        #openstack image create "focal-servers-vnx" --file /tmp/images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+        #rm /tmp/images/servers_image.qcow2
 
         # Cirros image
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/cirros-0.3.4-x86_64-disk-vnx.qcow2

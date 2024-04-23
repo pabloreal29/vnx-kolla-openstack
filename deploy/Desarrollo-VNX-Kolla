@@ -1,0 +1,91 @@
+Importante, utilizar la rama antelope.
+
+SITUACIÓN ACTUAL.
+
+	- He instalado Octavia, pero hay un warning a la hora de crear el balanceador de carga:
+		- UserWarning: Policy "context_is_admin":"role:admin or role:load-balancer_admin" was deprecated in W in favor of "context_is_admin":"role:load-balancer_admin or rule:system-admin or 						role:admin". Reason: The Octavia API now requires the OpenStack default roles and scoped tokens. See https://docs.openstack.org/octavia/latest/configuration/policy.html and https://docs.openstack.org/keystone/latest/contributor/services.html#reusable-default-roles for more information.. Either ensure your deployment is ready for the new default or copy/paste the deprecated policy into your policy file and maintain it manually.
+		
+	- También hay otro fallo en Octavia, creo que no se crea la imagen de amphora ni el flavor correctamente, voy a probar con octavia_auto_configure
+	- No puedo crear el firewall: The resource could not be found. Neutron server returns request_ids: ['req-fc00a806-06ad-4b12-b668-f3f2be31f886']
+
+----------------------------------------------------
+
+PROBLEMAS SURGIDOS
+
+1. Problema de almacenamiento solucionado: ahora los nodos tienen 40G en vez de 20G.
+Errores obtenidos:	
+	Error 1: httpException: 413: Client Error for url:  Request Entity Too Large
+	Error 2: HTTP 413 Request Entity Too Large: Image storage media is full: There is not enough disk space on the image storage media
+
+2. Sin acceso SSH a admin. Solucionado:
+	- David añade 2 líneas al .xml donde se cambia el MTU a 1400 (así se permite el acceso por SSH).
+	- Si no, se puede cambiar a mano mediante: ip link set dev ens3 mtu 1400
+
+3. Sin conectividad en net2: las interfaces de red se creaban en estado DOWN. 
+	- Solución: Cambio en la configuracion de net2 eliminando el atributo gateway_ip.
+	- Si no: 
+		- Ejecutar: ip link set dev ens4 up. 
+		- Luego eliminar la ruta que se ha creado: ip route del default via 10.1.2.1
+
+---------------------------------------
+MétodoHTTP Backend NO FUNCIONA. HAY QUE PROBAR OTRO TIPO DE BACKENDS (SWIFT DIO ERROR EN LA CONF DE OPENSTACK)
+
+Causas:
+- No se puede realizar: openstack image create con la opción --location porque está deprecado en la v2 de Glance
+- Otra opción es descargar la imagen con: wget http://10.0.0.1:80/servers_image.qcow2 -O servers_image.qcow2, pero luego da error: 
+openstack image create --container-format bare --disk-format qcow2 --public --file servers_image.qcow2 focal-servers-vnx
+HttpException: 410: Client Error for url: http://10.0.0.250:9292/v2/images/1aa8dfc8-4e96-47bb-ba40-84948186beab/file, Gone
+- El error radica en que no se permite en algún sitio añadir imágenes al backend pero no sé dónde (creo que el backend de tipo http en Glance v2 va mal y ya):
+2024-04-17 18:39:30.012 18 ERROR glance.api.v2.image_data glance_store.exceptions.StoreAddDisabled: Configuration for store failed. Adding images to this store is disabled. 
+
+
+1. Acceder al nodo Controller, actualizar esto para obtener las imagenes con glance mediante http:
+[glance_store]
+stores = http
+default_store = http
+http_store_host = 10.0.0.1
+http_store_port = 8000
+default_backend = http
+
+Ejecutar: systemctl restart kolla-glance_api-container.service
+
+2. Subir las imagenes al nodo admin: scp -r ../openstack-images/ root@admin:/root/openstack-images
+
+3. Acceder al nodo admin, a la ruta /root/openstack-images y ejecutar: python3 -m http.server 
+3.1 Comprobar si el servidor está bien lanzado ejecutando desde otro nodo (no admin): curl -I http://10.0.0.1:8000/servers_image.qcow2
+
+MÁS ALTERNATIVAS: Swift y Ceph no se habilitan correctamente en la configuración. Cinder necesita de una imagen de Glance, no sirve.
+---------------------------------------------
+
+
+El escenario es el siguiente:
+compute3: [10.0.0.32]
+compute2: [10.0.0.33]
+compute1: [10.0.0.31]
+network: [10.0.0.21]
+controller: [10.0.0.11]
+
+admin: [10.0.0.1]
+
+
+pabloreal@giros21:~/vnx-kolla-openstack$ openstack --os-cloud kolla-admin service list
++----------------------------------+-----------+----------------+
+| ID                               | Name      | Type           |
++----------------------------------+-----------+----------------+
+| 1724d842ac544f778759b4e8903b4921 | heat-cfn  | cloudformation |
+| 545af203e0bb4f46ae5d7700ae551eba | keystone  | identity       |
+| 905bf5d1f9f04b9ca7cc4aabb0df2592 | neutron   | network        |
+| beb1870570f04811820f45453152c95b | heat      | orchestration  |
+| c640489bb1e446c6af76ff0648afa828 | gnocchi   | metric         |
+| ebcd99cdc54d40b9a82489e605ef2031 | glance    | image          |
+| ee34a153364245039e053ddd08518c89 | placement | placement      |
+| f0470b6fd0f84475aae4e84c33dc2e09 | nova      | compute        |
++----------------------------------+-----------+----------------+
+
+
+kolla-nova_api-container.service                                                                      loaded active     running   docker >
+  kolla-nova_conductor-container.service                                                                loaded active     running   docker >
+  kolla-nova_novncproxy-container.service                                                               loaded active     running   docker >
+  kolla-nova_scheduler-container.service  
+
+

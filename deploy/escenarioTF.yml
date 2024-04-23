@@ -56,51 +56,50 @@ resources:
 
   ## BALANCEADOR ----------------------------------------------------
   
-  # load_balancer:
-  #   type: OS::Octavia::LoadBalancer
-  #   properties:
-  #     name: load_balancer
-  #     vip_subnet: {get_resource: subnet1}
-  #     vip_address: 10.1.1.23
+  load_balancer:
+    type: OS::Octavia::LoadBalancer
+    properties:
+      name: load_balancer
+      vip_subnet: {get_resource: subnet1}
+      vip_address: 10.1.1.23
 
-  # lb_listener:
-  #   type: OS::Octavia::Listener
-  #   properties:
-  #     name: lb_listener
-  #     protocol: HTTP                  
-  #     protocol_port: 80               
-  #     loadbalancer: {get_resource: load_balancer}
+  lb_listener:
+    type: OS::Octavia::Listener
+    properties:
+      name: lb_listener
+      protocol: HTTP                  
+      protocol_port: 80               
+      loadbalancer: {get_resource: load_balancer}
 
-  # lb_pool:
-  #   type: OS::Octavia::Pool
-  #   properties:
-  #     name: lb_pool
-  #     lb_algorithm: ROUND_ROBIN
-  #     protocol: HTTP
-  #     listener: {get_resource: lb_listener}
-  #     loadbalancer: {get_resource: load_balancer}
+  lb_pool:
+    type: OS::Octavia::Pool
+    properties:
+      name: lb_pool
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: {get_resource: lb_listener}
+      loadbalancer: {get_resource: load_balancer}
   
-  # lb_memberS1:
-  #   type: OS::Octavia::PoolMember
-  #   properties:
-  #     pool: {get_resource: lb_pool}
-  #     protocol_port: 80
-  #     address: {get_attr: [port1_net1, fixed_ips, 0, ip_address]}
+  lb_memberS1:
+    type: OS::Octavia::PoolMember
+    properties:
+      pool: {get_resource: lb_pool}
+      protocol_port: 80
+      address: {get_attr: [port1_net1, fixed_ips, 0, ip_address]}
 
-  # lb_memberS2:
-  #   type: OS::Octavia::PoolMember
-  #   properties:
-  #     pool: {get_resource: lb_pool}
-  #     protocol_port: 80
-  #     address: {get_attr: [port2_net1, fixed_ips, 0, ip_address]}
+  lb_memberS2:
+    type: OS::Octavia::PoolMember
+    properties:
+      pool: {get_resource: lb_pool}
+      protocol_port: 80
+      address: {get_attr: [port2_net1, fixed_ips, 0, ip_address]}
 
-  # lb_memberS3:
-  #   type: OS::Octavia::PoolMember
-  #   properties:
-  #     pool: {get_resource: lb_pool}
-  #     protocol_port: 80
-  #     address: {get_attr: [port3_net1, fixed_ips, 0, ip_address]}
-
+  lb_memberS3:
+    type: OS::Octavia::PoolMember
+    properties:
+      pool: {get_resource: lb_pool}
+      protocol_port: 80
+      address: {get_attr: [port3_net1, fixed_ips, 0, ip_address]}
 
 
   ## GRUPO DE SEGURIDAD -----------------------------------------------------------------
