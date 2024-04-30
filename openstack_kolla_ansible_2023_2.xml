@@ -69,13 +69,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <filetree seq="on_boot" root="/tmp/">conf/admin/hosts</filetree>
     <filetree seq="on_boot" root="/root/">conf/admin/deploy-ostack</filetree>
 
-
-    <!-- Más cambios de Pablo para subir al nodo Admin sus imágenes -->
-    <!-- <filetree seq="on_boot" root="/tmp/">../openstack-images/servers_image.qcow2</filetree>
-    <filetree seq="on_boot" root="/tmp/">../openstack-images/admin_image.qcow2</filetree>
-    <filetree seq="on_boot" root="/tmp/">../openstack-images/bbdd_image.qcow2</filetree> -->
-
-
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
         apt-get update
@@ -121,25 +114,37 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #sed -i 's/#kolla_external_vip_address.*/kolla_external_vip_address: "10.0.10.250"/' /etc/kolla/globals.yml
         #sed -i 's/#kolla_external_vip_interface.*/kolla_external_vip_interface: "eth4"/' /etc/kolla/globals.yml
 
-        <!-- Pruebas para habilitar SSH en el Puerto 2022, no se si es necesario todo esto -->
-        sed -i 's/#enable_openstack_core:.*/enable_openstack_core: "yes"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_neutron:.*/enable_neutron: "{{ enable_openstack_core | bool }}"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_nova:.*/enable_nova: "{{ enable_openstack_core | bool }}"/' /etc/kolla/globals.yml
+        <!-- Añadido por Pablo. Cosas para SSH que no sé si hacen falta-->
         sed -i 's/#enable_neutron_port_forwarding:.*/enable_neutron_port_forwarding: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_nova_ssh:.*/enable_nova_ssh: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_neutron_bgp_dragent:.*/enable_neutron_bgp_dragent: "yes"/' /etc/kolla/globals.yml
 
-        <!-- Habilitar Octavia para el Load Balancer -->
+        <!-- Añadido Por Pablo. Habilitar Octavia-->
+        sed -i 's/#octavia_network_interface:.*/octavia_network_interface: "eth3"/' /etc/kolla/globals.yml
         sed -i 's/#enable_octavia:.*/enable_octavia: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_redis:.*/enable_redis: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_horizon_octavia:.*/enable_horizon_octavia: "{{ enable_octavia | bool }}"/' /etc/kolla/globals.yml
         sed -i 's/#octavia_auto_configure:.*/octavia_auto_configure: yes/' /etc/kolla/globals.yml
+
+        sed -i '/#octavia_amp_network:/,/enable_dhcp: yes/{
+  /#octavia_amp_network:/{
+    s/#octavia_amp_network:/octavia_amp_network:/g
+  }
+  /#    enable_dhcp: yes/{
+    s/#    enable_dhcp: yes/octavia_amp_network:\n            name: lb-mgmt-net\n            provider_network_type: vlan\n            provider_segmentation_id: 1005\n            provider_physical_network: physnet1\n            external: false\n            shared: false\n            subnet:\n              name: lb-mgmt-subnet\n              cidr: "10.1.2.0\/24"\n              allocation_pool_start: "10.1.2.100"\n              allocation_pool_end: "10.1.2.200"\n              gateway_ip: "10.1.2.1"\n              enable_dhcp: yes\n/g
+  }
+}' /etc/kolla/globals.yml
+
 
         <!-- Añadido por David para cambiar MTU a 1400 y así poder acceder por SSH-->
         sed -i -e 's/network_vlan_ranges =.*/network_vlan_ranges = physnet1/' /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/ml2_conf.ini.j2
         echo 'dhcp-option-force=26,1400' >> /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/dnsmasq.conf.j2
 
         pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2023.2
+
+        <!-- Añadido por Pablo -->
+        pip install python-octaviaclient
+        
     </exec>
     <filetree seq="config-admin2" root="/root/kolla/share/kolla-ansible/ansible/inventory/">conf/admin/multinode</filetree>
     <exec seq="config-admin2" type="verbatim">
@@ -155,12 +160,28 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
     </exec>
 
-    <!-- Intento de Pablo fallido (ejecutar desde host no desde admin) -->
-    <!-- <exec seq="config-controller" type="verbatim">
-        ssh -o StrictHostKeyChecking=accept-new root@controller
-        sed -i '/^\[glance_store\]/a\image_size_cap = 10737418240  # 10 GB' /etc/kolla/glance-api/glance-api.conf
-        systemctl restart glance-api
-    </exec> -->
+    <!-- Añadido por Pablo. Documentación disponible en: https://docs.openstack.org/kolla-ansible/latest/reference/networking/octavia.html#octavia-amphora-image -->
+    <exec seq="load-octavia" type="verbatim">
+        <!-- sudo apt update
+        sudo apt -y install debootstrap qemu-utils git kpartx
+        git clone https://opendev.org/openstack/octavia -b stable/2023.2
+
+        python3 -m venv dib-venv
+        source dib-venv/bin/activate
+        pip install diskimage-builder
+        
+        cd octavia/diskimage-create
+        sed -i 's/rm -rf "$TEMP".*/#rm -rf "$TEMP"/' ./diskimage-create.sh
+        ./diskimage-create.sh --> 
+
+        source /root/kolla/bin/activate
+        <!-- . /etc/kolla/octavia-openrc.sh -->
+        source /etc/kolla/admin-openrc.sh
+        openstack flavor show amphora >/dev/null 2>&amp;1 || openstack flavor create --id 200 --vcpus 1 --ram 1024 --disk 2 amphora --private 
+        wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/ubuntu-amphora-haproxy-amd64.qcow2
+        openstack image create --disk-format qcow2 --container-format bare --project admin --tag amphora --file /tmp/images/ubuntu-amphora-haproxy-amd64.qcow2 amphora-x64-haproxy
+        rm /tmp/images/ubuntu-amphora-haproxy-amd64.qcow2
+    </exec>
 
     <exec seq="load-img" type="verbatim">
 
@@ -172,11 +193,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         openstack flavor show m1.tiny >/dev/null 2>&amp;1    || openstack flavor create --id 1 --vcpus 1 --ram 512 --disk 1 m1.tiny
         openstack flavor show m1.smaller >/dev/null 2>&amp;1 || openstack flavor create --id 6 --vcpus 1 --ram 512 --disk 3 m1.smaller
         #openstack flavor show m1.octavia >/dev/null 2>&amp;1 || openstack flavor create --id 100 --vcpus 1 --ram 1024 --disk 5 m1.octavia --private --project service
-
-        # Imagenes escenario Pablo 
-        #wget -P /tmp/images http://10.0.0.1:8000/servers_image.qcow2
-        #openstack image create "focal-servers-vnx" --file /tmp/images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-        #rm /tmp/images/servers_image.qcow2
 
         # Cirros image
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/cirros-0.3.4-x86_64-disk-vnx.qcow2
@@ -309,7 +325,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="controller" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>4G</mem> <!--Esta memoria es RAM, no disco-->
+    <mem>4G</mem>
     <!--console id="0" display="yes"/-->
 
     <if id="1" net="MgmtNet">
@@ -318,6 +334,11 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <if id="4" net="ExtNet">
       <ipv4>10.0.10.11/24</ipv4>
     </if>
+
+    <!-- Añadido por Pablo -->
+    <if id="3" net="VlanNet">
+    </if>
+
     <!--if id="9" net="virbr0">
       <ipv4>dhcp</ipv4>
     </if-->
@@ -337,7 +358,13 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i -e '/iface eth1 inet static/a \   mtu 1450' /etc/network/interfaces
         #systemd-resolve --set-dns=8.8.8.8 --interface=eth1
 	resolvectl dns 2 1.1.1.1
+
+        <!-- Añadido por Pablo -->
+        ip link add link eth3 name eth3.1005 type vlan id 1005
+        ip link set dev eth3.1005 up
+        ip addr add 10.1.2.1/24 dev eth3.1005
     </exec>
+
   </vm>
 
   <!--

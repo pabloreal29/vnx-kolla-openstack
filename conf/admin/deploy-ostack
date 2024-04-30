@@ -10,6 +10,6 @@ source /root/kolla/bin/activate
 kolla-ansible octavia-certificates #Añadido por Pablo
 kolla-ansible -i $INVENTORY --configdir /etc/kolla/ bootstrap-servers
 kolla-ansible -i $INVENTORY --configdir /etc/kolla/ prechecks
-kolla-ansible -i $INVENTORY --configdir /etc/kolla/ deploy
+kolla-ansible -i $INVENTORY --configdir /etc/kolla/ deploy --tags common,horizon,octavia,haproxy #Añadido por Pablo
 kolla-ansible post-deploy
 

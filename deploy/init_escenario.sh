@@ -20,6 +20,7 @@ source deploy/myuser-openrc.sh
 #Cargar imagenes y crear red externa
 OSTACKLAB=openstack_kolla_ansible_2023_2.xml
 sudo vnx -f $OSTACKLAB -x load-img
+sudo vnx -f $OSTACKLAB -x load-octavia
 sudo vnx -f $OSTACKLAB -x create-extnet
 
 #Crear parejas de claves

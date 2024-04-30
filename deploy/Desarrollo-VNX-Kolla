@@ -1,16 +1,103 @@
 Importante, utilizar la rama antelope.
 
-SITUACIÓN ACTUAL.
+SITUACIÓN ACTUAL:
 
-	- He instalado Octavia, pero hay un warning a la hora de crear el balanceador de carga:
-		- UserWarning: Policy "context_is_admin":"role:admin or role:load-balancer_admin" was deprecated in W in favor of "context_is_admin":"role:load-balancer_admin or rule:system-admin or 						role:admin". Reason: The Octavia API now requires the OpenStack default roles and scoped tokens. See https://docs.openstack.org/octavia/latest/configuration/policy.html and https://docs.openstack.org/keystone/latest/contributor/services.html#reusable-default-roles for more information.. Either ensure your deployment is ready for the new default or copy/paste the deprecated policy into your policy file and maintain it manually.
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+LOAD BALANCER
+	- Octavia parece que se arranca en el nodo Network, viendo los logs del despliegue de Kolla.
+	
+
+	En la task Deploy si se hacen todos los cambios en globals.yml:
+
+	PLAY [Apply role octavia]
+	TASK [service-ks-register : octavia | Creating services] ***********************************************************************************
+	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (5 retries left).
+	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (4 retries left).
+	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (3 retries left).
+	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (2 retries left).
+	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (1 retries left).
+	
+	failed: [10.0.0.11] (item=octavia (load-balancer)) => {"action": "os_keystone_service", "ansible_loop_var": "item", "attempts": 5, "changed": false, "item": {"description": "Octavia Load Balancing Service", "endpoints": [{"interface": "internal", "url": "http://10.0.0.250:9876"}, {"interface": "public", "url": "http://10.0.0.250:9876"}], "name": "octavia", "type": "load-balancer"}, "module_stderr": "Failed to discover available identity versions when contacting http://10.0.0.250:5000. Attempting to parse version from URL. Could not find versioned identity endpoints when attempting to authenticate. Please check that your auth_url is correct. Service Unavailable (HTTP 503)\n", "module_stdout": "", "msg": "MODULE FAILURE\nSee stdout/stderr for the exact error", "rc": 1}
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+IMPORTANTE. Hay que quitar el openstack_core para que no de el error anterior:
+	- Hay que asignar una IP a eth3 en controller (y no sé si en network también, creo que es en controller), con la IP de gateway_ip: "10.1.2.1". Par ello, acceder al nodo y realizar estos pasos:
+		ip link add link eth3 name eth3.1005 type vlan id 1005
+		ip link set dev eth3.1005 up
+		ip addr add 10.1.2.1/24 dev eth3.1005
 		
-	- También hay otro fallo en Octavia, creo que no se crea la imagen de amphora ni el flavor correctamente, voy a probar con octavia_auto_configure
+		ip link delete eth3.1005 #Para borrar la interfaz de red
+	
+	- Estoy probando a crear un balanceador de carga con Octavia.
+	- Tengo que utilizar VlaNet como red de VLAN para gestionar el tráfico de mngmnt de Octavia. Sin embargo, esta red solo conecta el nodo de red y los de computación.
+	- Por eso, hay que modificar el xml para añadir una interfaz de red para VlanNet en admin y controller. Ahora voy a probar a añadirla SOLO en controller, no en admin. Mismo error, el de arriba.
+		- Si no lo hago, sale un error al desplegar OpenStack, al configurar la red de mngment de Octavia, que dice que no se encuentra la VlanNet.
+	
+	- Cambios en globals.yml:
+			octavia_network_interface: "eth3" 
+			
+			octavia_auto_configure: yes
+			octavia_amp_flavor:
+			  name: "amphora"
+			  is_public: no
+			  vcpus: 1
+			  ram: 512
+			  disk: 5
+			 
+			octavia_amp_network:
+			  name: lb-mgmt-net
+			  provider_network_type: vlan
+			  provider_segmentation_id: 1005
+			  provider_physical_network: physnet1
+			  external: false
+			  shared: false
+			  subnet:
+			    name: lb-mgmt-subnet
+			    cidr: "10.1.2.0/24"
+			    allocation_pool_start: "10.1.2.100"
+			    allocation_pool_end: "10.1.2.200"
+			    gateway_ip: "10.1.2.1"
+			    enable_dhcp: yes
+
+
+			octavia_amp_image_tag: "amphora"
+
+			# Load balancer topology options are [ SINGLE, ACTIVE_STANDBY ]
+			octavia_loadbalancer_topology: "SINGLE"
+		
+		
+	- Cambios en deploy-ostack:
+		kolla-ansible -i $INVENTORY --configdir /etc/kolla/ deploy --tags common,horizon,octavia #Añadido por Pablo
+		
+		
+	- El error que sale es que no detecta la imagen de amphora (recuerda que la he importado yo de Vnx, no he seguido la receta de Kolla).
+	- ERROR YA SUPERADO!! Este error se puede ver en el nodo controller, dentro de /var/log/kolla/octavia/octavia-worker.log.
+		2024-04-26 09:38:29.193 17 ERROR octavia.compute.drivers.nova_driver octavia.common.exceptions.ImageGetException: Failed to retrieve image with amphora tag.
+		2024-04-26 09:38:29.193 17 ERROR octavia.compute.drivers.nova_driver 
+		2024-04-26 09:38:29.193 17 ERROR octavia.controller.worker.v2.tasks.compute_tasks [-] Compute create for amphora id: 7eb70294-caaa-4e0f-b3d8-e4ef524472a2 failed:
+		octavia.common.exceptions.ComputeBuildException: Failed to build compute instance due to: Failed to retrieve image with amphora tag.
+		
+	- Cambiando el id del owner de octavia en el nodo controlador consigo quitarme ese error, ahora me dice: No valid host was found:
+	- El error es:
+		2024-04-26 11:29:17.332 18 ERROR octavia.common.base_taskflow octavia.common.exceptions.ComputeBuildException: Failed to build compute instance due to: {'code': 500, 'created': '2024-04-26T11:29:14Z', 'message': 'No valid host was found. ', 'details': 'Traceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/conductor/manager.py", line 1654, in schedule_and_build_instances\n    host_lists = self._schedule_instances(context, request_specs[0],\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/conductor/manager.py", line 942, in _schedule_instances\n    host_lists = self.query_client.select_destinations(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/scheduler/client/query.py", line 41, in select_destinations\n    return self.scheduler_rpcapi.select_destinations(context, spec_obj,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/scheduler/rpcapi.py", line 160, in select_destinations\n    return cctxt.call(ctxt, \'select_destinations\', **msg_args)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/rpc/client.py", line 190, in call\n    result = self.transport._send(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/transport.py", line 123, in _send\n    return self._driver.send(target, ctxt, message,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/_drivers/amqpdriver.py", line 689, in send\n    return self._send(target, ctxt, message, wait_for_reply, timeout,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/_drivers/amqpdriver.py", line 681, in _send\n    raise result\nnova.exception_Remote.NoValidHost_Remote: No valid host was found. \nTraceback (most recent call last):\n\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/rpc/server.py", line 244, in inner\n    return func(*args, **kwargs)\n\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/scheduler/manager.py", line 243, in select_destinations\n    raise exception.NoValidHost(reason="")\n\nnova.exception.NoValidHost: No valid host was found. \n\n'}
+
+
+	-Cambios a hacer:
+		nano /etc/kolla/octavia-(todos)/octavia.conf y asignar en la propiedad amp_image_owner_id el id del project admin.
+		systemctl restart kolla-octavia_api-container.service kolla-octavia_health_manager-container.service kolla-octavia_housekeeping-container.service kolla-octavia_worker-container.service
+	- Quiero probar con la red de ayer y el nuevo cambio
+
+	- Se puede cambiar el amp_image_owner_id directamente en globals.yml, poniendo octavia_auto_configure: no. Entonces, necesitaremos el octavia_managment_port y este es el 5555 por defecto.
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+FIREWALL
+
 	- No puedo crear el firewall: The resource could not be found. Neutron server returns request_ids: ['req-fc00a806-06ad-4b12-b668-f3f2be31f886']
 
-----------------------------------------------------
+------------------------------------------------------------------------------------------------------------------------------------------------------
 
-PROBLEMAS SURGIDOS
+PROBLEMAS ya SOLUCIONADOS
 
 1. Problema de almacenamiento solucionado: ahora los nodos tienen 40G en vez de 20G.
 Errores obtenidos:	
@@ -27,7 +114,9 @@ Errores obtenidos:
 		- Ejecutar: ip link set dev ens4 up. 
 		- Luego eliminar la ruta que se ha creado: ip route del default via 10.1.2.1
 
----------------------------------------
+-------------------------------------------------------------------------------------------------------------------------------------------------
+PRUEBAS CON GLANCE
+
 MétodoHTTP Backend NO FUNCIONA. HAY QUE PROBAR OTRO TIPO DE BACKENDS (SWIFT DIO ERROR EN LA CONF DE OPENSTACK)
 
 Causas:
@@ -55,8 +144,9 @@ Ejecutar: systemctl restart kolla-glance_api-container.service
 3.1 Comprobar si el servidor está bien lanzado ejecutando desde otro nodo (no admin): curl -I http://10.0.0.1:8000/servers_image.qcow2
 
 MÁS ALTERNATIVAS: Swift y Ceph no se habilitan correctamente en la configuración. Cinder necesita de una imagen de Glance, no sirve.
----------------------------------------------
 
+-------------------------------------------------------------------------------------------------------------------------------------------------
+DESCRIPCIÓN ESCENARIO
 
 El escenario es el siguiente:
 compute3: [10.0.0.32]
@@ -64,7 +154,6 @@ compute2: [10.0.0.33]
 compute1: [10.0.0.31]
 network: [10.0.0.21]
 controller: [10.0.0.11]
-
 admin: [10.0.0.1]
 
 
