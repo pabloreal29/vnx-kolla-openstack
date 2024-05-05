@@ -89,6 +89,9 @@ IMPORTANTE. Hay que quitar el openstack_core para que no de el error anterior:
 	- Quiero probar con la red de ayer y el nuevo cambio
 
 	- Se puede cambiar el amp_image_owner_id directamente en globals.yml, poniendo octavia_auto_configure: no. Entonces, necesitaremos el octavia_managment_port y este es el 5555 por defecto.
+	
+	admin_project_id=$(openstack project show admin -c id -f value)
+	sed -i "s/#octavia_amp_image_owner_id.*/octavia_amp_image_owner_id: $admin_project_id/" /etc/kolla/globals.yml
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 FIREWALL

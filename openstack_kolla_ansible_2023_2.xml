@@ -124,7 +124,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_octavia:.*/enable_octavia: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_redis:.*/enable_redis: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_horizon_octavia:.*/enable_horizon_octavia: "{{ enable_octavia | bool }}"/' /etc/kolla/globals.yml
-        sed -i 's/#octavia_auto_configure:.*/octavia_auto_configure: yes/' /etc/kolla/globals.yml
+        sed -i 's/#octavia_auto_configure:.*/octavia_auto_configure: no/' /etc/kolla/globals.yml
 
         sed -i '/#octavia_amp_network:/,/enable_dhcp: yes/{
   /#octavia_amp_network:/{
@@ -144,6 +144,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
         <!-- Añadido por Pablo -->
         pip install python-octaviaclient
+        apt-get install nano
+
+        source /root/kolla/bin/activate
+        source /etc/kolla/admin-openrc.sh
+        admin_project_id=$(openstack project show admin -c id -f value)
+        sed -i "s/#octavia_amp_image_owner_id.*/octavia_amp_image_owner_id: $admin_project_id/" /etc/kolla/globals.yml
         
     </exec>
     <filetree seq="config-admin2" root="/root/kolla/share/kolla-ansible/ansible/inventory/">conf/admin/multinode</filetree>
@@ -337,6 +343,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
     <!-- Añadido por Pablo -->
     <if id="3" net="VlanNet">
+      <ipv4>10.1.2.1/24</ipv4>
     </if>
 
     <!--if id="9" net="virbr0">

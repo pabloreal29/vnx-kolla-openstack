@@ -207,11 +207,11 @@ resources:
 
   ## IPs FLOTANTES ------------------------------------------------
 
-  # floating_ipLB:
-  #   type: OS::Neutron::FloatingIP
-  #   properties:
-  #     floating_network: ExtNet
-  #     port_id: {get_attr: [load_balancer, vip_port_id]}
+  floating_ipLB:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: ExtNet
+      port_id: {get_attr: [load_balancer, vip_port_id]}
 
   floating_ipAdmin:
     type: OS::Neutron::FloatingIP
