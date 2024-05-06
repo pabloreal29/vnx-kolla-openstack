@@ -39,11 +39,25 @@ IMPORTANTE. Hay que quitar el openstack_core para que no de el error anterior:
 			
 			octavia_auto_configure: yes
 			octavia_amp_flavor:
+			  flavorid: 255
 			  name: "amphora"
 			  is_public: no
 			  vcpus: 1
 			  ram: 512
 			  disk: 5
+			  
+			# Octavia security groups. lb-mgmt-sec-grp is for amphorae.
+			octavia_amp_security_groups:
+			    mgmt-sec-grp:
+			      name: lb-mgmt-sec-grp
+			      rules:
+				- protocol: icmp
+				- protocol: tcp
+				  src_port: 22
+				  dst_port: 22
+				- protocol: tcp
+				  src_port: 5555
+				  dst_port: 5555
 			 
 			octavia_amp_network:
 			  name: lb-mgmt-net
@@ -65,13 +79,15 @@ IMPORTANTE. Hay que quitar el openstack_core para que no de el error anterior:
 
 			# Load balancer topology options are [ SINGLE, ACTIVE_STANDBY ]
 			octavia_loadbalancer_topology: "SINGLE"
+			
+			# The following variables are ignored as along as `octavia_auto_configure` is set to `yes`.
+			#octavia_amp_image_owner_id:
+			octavia_amp_boot_network_list: lb-mngmt-net
+			octavia_amp_secgroup_list: lb-mgmt-sec-grp
+			octavia_amp_flavor_id: 255
 		
 		
-	- Cambios en deploy-ostack:
-		kolla-ansible -i $INVENTORY --configdir /etc/kolla/ deploy --tags common,horizon,octavia #Añadido por Pablo
-		
-		
-	- El error que sale es que no detecta la imagen de amphora (recuerda que la he importado yo de Vnx, no he seguido la receta de Kolla).
+	- El error que sale es que no detecta la imagen de amphora (recuerda que la he importado yo de VNX, no he seguido la receta de Kolla).
 	- ERROR YA SUPERADO!! Este error se puede ver en el nodo controller, dentro de /var/log/kolla/octavia/octavia-worker.log.
 		2024-04-26 09:38:29.193 17 ERROR octavia.compute.drivers.nova_driver octavia.common.exceptions.ImageGetException: Failed to retrieve image with amphora tag.
 		2024-04-26 09:38:29.193 17 ERROR octavia.compute.drivers.nova_driver 

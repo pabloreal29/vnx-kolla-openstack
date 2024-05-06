@@ -10,6 +10,12 @@ source /root/kolla/bin/activate
 kolla-ansible octavia-certificates #Añadido por Pablo
 kolla-ansible -i $INVENTORY --configdir /etc/kolla/ bootstrap-servers
 kolla-ansible -i $INVENTORY --configdir /etc/kolla/ prechecks
-kolla-ansible -i $INVENTORY --configdir /etc/kolla/ deploy --tags common,horizon,octavia,haproxy #Añadido por Pablo
+kolla-ansible -i $INVENTORY --configdir /etc/kolla/ deploy 
 kolla-ansible post-deploy
 
+
+# Cambiar el proyecto del que se coge la imagen de Amphora a admin
+source /etc/kolla/admin-openrc.sh
+admin_project_id=$(openstack project show admin -c id -f value)
+sed -i "s/#octavia_amp_image_owner_id.*/octavia_amp_image_owner_id: $admin_project_id/" /etc/kolla/globals.yml
+kolla-ansible -i /root/kolla/share/kolla-ansible/ansible/inventory/multinode --configdir /etc/kolla/ reconfigure --tags octavia 

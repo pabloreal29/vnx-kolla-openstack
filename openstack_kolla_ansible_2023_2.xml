@@ -68,6 +68,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <filetree seq="on_boot" root="/root/.ssh/">conf/ssh/id_rsa</filetree>
     <filetree seq="on_boot" root="/tmp/">conf/admin/hosts</filetree>
     <filetree seq="on_boot" root="/root/">conf/admin/deploy-ostack</filetree>
+    <filetree seq="on_boot" root="/tmp/">deploy/globals.yml</filetree>
 
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
@@ -88,7 +89,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <exec seq="config-admin1" type="verbatim">
 	for c in controller network compute1 compute2 compute3; do while ! $( nc -z $c 22 ); do sleep 1; done; ssh -o StrictHostKeyChecking=accept-new root@$c w; done
         for c in 10.0.0.11 10.0.0.21 10.0.0.31 10.0.0.32 10.0.0.33; do while ! $( nc -z $c 22 ); do sleep 1; done; ssh -o StrictHostKeyChecking=accept-new root@$c w; done
-	for c in controller network compute1 compute2 compute3; do apt update; done
+	for c in controller network compute1 compute2 compute3; do apt updetcate; done
         export DEBIAN_FRONTEND=noninteractive
         sudo apt update
         sudo apt install -y git python3-dev libffi-dev gcc libssl-dev python3-venv
@@ -134,7 +135,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     s/#    enable_dhcp: yes/octavia_amp_network:\n            name: lb-mgmt-net\n            provider_network_type: vlan\n            provider_segmentation_id: 1005\n            provider_physical_network: physnet1\n            external: false\n            shared: false\n            subnet:\n              name: lb-mgmt-subnet\n              cidr: "10.1.2.0\/24"\n              allocation_pool_start: "10.1.2.100"\n              allocation_pool_end: "10.1.2.200"\n              gateway_ip: "10.1.2.1"\n              enable_dhcp: yes\n/g
   }
 }' /etc/kolla/globals.yml
-
+        sed -i '0,/octavia_amp_network:/{s/octavia_amp_network:.*/#octavia_amp_network:/}' /etc/kolla/globals.yml
 
         <!-- Añadido por David para cambiar MTU a 1400 y así poder acceder por SSH-->
         sed -i -e 's/network_vlan_ranges =.*/network_vlan_ranges = physnet1/' /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/ml2_conf.ini.j2
@@ -145,11 +146,8 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         <!-- Añadido por Pablo -->
         pip install python-octaviaclient
         apt-get install nano
-
-        source /root/kolla/bin/activate
-        source /etc/kolla/admin-openrc.sh
-        admin_project_id=$(openstack project show admin -c id -f value)
-        sed -i "s/#octavia_amp_image_owner_id.*/octavia_amp_image_owner_id: $admin_project_id/" /etc/kolla/globals.yml
+        rm -rf /etc/kolla/globals.yml
+        mv /tmp/globals.yml /etc/kolla/globals.yml
         
     </exec>
     <filetree seq="config-admin2" root="/root/kolla/share/kolla-ansible/ansible/inventory/">conf/admin/multinode</filetree>
@@ -167,22 +165,10 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     </exec>
 
     <!-- Añadido por Pablo. Documentación disponible en: https://docs.openstack.org/kolla-ansible/latest/reference/networking/octavia.html#octavia-amphora-image -->
-    <exec seq="load-octavia" type="verbatim">
-        <!-- sudo apt update
-        sudo apt -y install debootstrap qemu-utils git kpartx
-        git clone https://opendev.org/openstack/octavia -b stable/2023.2
-
-        python3 -m venv dib-venv
-        source dib-venv/bin/activate
-        pip install diskimage-builder
-        
-        cd octavia/diskimage-create
-        sed -i 's/rm -rf "$TEMP".*/#rm -rf "$TEMP"/' ./diskimage-create.sh
-        ./diskimage-create.sh --> 
+    <exec seq="load-octavia-admin" type="verbatim">
 
         source /root/kolla/bin/activate
-        <!-- . /etc/kolla/octavia-openrc.sh -->
-        source /etc/kolla/admin-openrc.sh
+        source /etc/kolla/admin-openrc.sh      
         openstack flavor show amphora >/dev/null 2>&amp;1 || openstack flavor create --id 200 --vcpus 1 --ram 1024 --disk 2 amphora --private 
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/ubuntu-amphora-haproxy-amd64.qcow2
         openstack image create --disk-format qcow2 --container-format bare --project admin --tag amphora --file /tmp/images/ubuntu-amphora-haproxy-amd64.qcow2 amphora-x64-haproxy
@@ -370,6 +356,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         ip link add link eth3 name eth3.1005 type vlan id 1005
         ip link set dev eth3.1005 up
         ip addr add 10.1.2.1/24 dev eth3.1005
+    </exec>
+
+
+    <!-- Añadido por Pablo-->
+    <exec seq="load-octavia-controller" type="verbatim">
+        systemctl restart kolla-octavia_api-container.service kolla-octavia_health_manager-container.service kolla-octavia_housekeeping-container.service kolla-octavia_worker-container.service
     </exec>
 
   </vm>
