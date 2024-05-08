@@ -123,7 +123,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_octavia:.*/enable_octavia: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_redis:.*/enable_redis: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_horizon_octavia:.*/enable_horizon_octavia: "{{ enable_octavia | bool }}"/' /etc/kolla/globals.yml
-        sed -i 's/#octavia_auto_configure:.*/octavia_auto_configure: no/' /etc/kolla/globals.yml
+        sed -i 's/#octavia_auto_configure:.*/octavia_auto_configure: "yes"/' /etc/kolla/globals.yml
 
         sed -i '/#octavia_amp_network:/,/enable_dhcp: yes/{
   /#octavia_amp_network:/{
@@ -166,10 +166,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <exec seq="load-octavia-admin" type="verbatim">
 
         source /root/kolla/bin/activate
-        source /etc/kolla/admin-openrc.sh      
+        <!-- source /etc/kolla/admin-openrc.sh -->
+        . /etc/kolla/octavia-openrc.sh
+
         openstack flavor show amphora >/dev/null 2>&amp;1 || openstack flavor create --id 200 --vcpus 1 --ram 1024 --disk 2 amphora --private 
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/ubuntu-amphora-haproxy-amd64.qcow2
-        openstack image create --disk-format qcow2 --container-format bare --project admin --tag amphora --file /tmp/images/ubuntu-amphora-haproxy-amd64.qcow2 amphora-x64-haproxy
+        openstack image create amphora-x64-haproxy.qcow2 --container-format bare --disk-format qcow2 --private --tag amphora --file /tmp/images/ubuntu-amphora-haproxy-amd64.qcow2 --property hw_architecture='x86_64' --property hw_rng_model=virtio
         rm /tmp/images/ubuntu-amphora-haproxy-amd64.qcow2
     </exec>
 
@@ -251,7 +253,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         # Create virtual machine
         mkdir -p /root/keys
         openstack keypair create vm2 > /root/keys/vm2
-        openstack server create --flavor m1.tiny --image cirros-0.3.4-x86_64-vnx vm2 --nic net-id=net0 --key-name vm2
+        openstack server create --flavor m1.tiny --image cirros-0.3.4-x86_64-vnx vm2 --nic net-id=Net1 --key-name vm2
         # Assign floating IP address to vm2
         #openstack ip floating add $( openstack ip floating create ExtNet -c ip -f value ) vm2
         openstack server add floating ip vm2 $( openstack floating ip create ExtNet -c floating_ip_address -f value )
@@ -327,7 +329,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
     <!-- Añadido por Pablo -->
     <if id="3" net="VlanNet">
-      <ipv4>10.1.2.1/24</ipv4>
+      <!-- <ipv4>10.1.2.1/24</ipv4> -->
     </if>
 
     <!--if id="9" net="virbr0">

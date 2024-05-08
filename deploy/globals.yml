@@ -138,7 +138,7 @@ network_interface: "eth1"
 #swift_replication_interface: "{{ swift_storage_interface }}"
 #tunnel_interface: "{{ network_interface }}"
 #dns_interface: "{{ network_interface }}"
-octavia_network_interface: "eth3"
+octavia_network_interface: "eth3.1005"
 
 # Configure the address family (AF) per network.
 # Valid options are [ ipv4, ipv6 ]
