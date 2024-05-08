@@ -112,8 +112,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_neutron_provider_networks:.*/enable_neutron_provider_networks: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_ceilometer:.*/enable_ceilometer: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_gnocchi:.*/enable_gnocchi: "yes"/' /etc/kolla/globals.yml
-        #sed -i 's/#kolla_external_vip_address.*/kolla_external_vip_address: "10.0.10.250"/' /etc/kolla/globals.yml
-        #sed -i 's/#kolla_external_vip_interface.*/kolla_external_vip_interface: "eth4"/' /etc/kolla/globals.yml
 
         <!-- Añadido por Pablo. Cosas para SSH que no sé si hacen falta-->
         sed -i 's/#enable_neutron_port_forwarding:.*/enable_neutron_port_forwarding: "yes"/' /etc/kolla/globals.yml

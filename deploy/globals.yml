@@ -397,14 +397,14 @@ enable_horizon_octavia: "{{ enable_octavia | bool }}"
 #enable_neutron_dvr: "no"
 #enable_neutron_qos: "no"
 #enable_neutron_agent_ha: "no"
-enable_neutron_bgp_dragent: "yes"
+#enable_neutron_bgp_dragent: "no"
 enable_neutron_provider_networks: "yes"
 #enable_neutron_segments: "no"
 #enable_neutron_sfc: "no"
 #enable_neutron_trunk: "no"
 #enable_neutron_metering: "no"
 #enable_neutron_infoblox_ipam_agent: "no"
-enable_neutron_port_forwarding: "yes"
+#enable_neutron_port_forwarding: "no"
 #enable_nova_serialconsole_proxy: "no"
 enable_nova_ssh: "yes"
 enable_octavia: "yes"
@@ -824,7 +824,7 @@ enable_redis: "yes"
 # Whether to run Kolla Ansible's automatic configuration for Octavia.
 # NOTE: if you upgrade from Ussuri, you must set `octavia_auto_configure` to `no`
 # and keep your other Octavia config like before.
-octavia_auto_configure: no
+octavia_auto_configure: "yes"
 
 # Octavia amphora flavor.
 # See os_nova_flavor for details. Supported parameters:
@@ -845,17 +845,17 @@ octavia_amp_flavor:
   disk: 5
 
 # Octavia security groups. lb-mgmt-sec-grp is for amphorae.
-octavia_amp_security_groups:
-    mgmt-sec-grp:
-      name: "lb-mgmt-sec-grp"
-      rules:
-        - protocol: icmp
-        - protocol: tcp
-          src_port: 22
-          dst_port: 22
-        - protocol: tcp
-          src_port: 5555
-          dst_port: 5555
+# octavia_amp_security_groups:
+#     mgmt-sec-grp:
+#       name: "lb-mgmt-sec-grp"
+#       rules:
+#         - protocol: icmp
+#         - protocol: tcp
+#           src_port: 22
+#           dst_port: 22
+#         - protocol: tcp
+#           src_port: 9443
+#           dst_port: 9443
 
 # Octavia management network.
 # See os_network and os_subnet for details. Supported parameters:
@@ -886,20 +886,19 @@ octavia_amp_security_groups:
 #    cidr: "{{ octavia_amp_network_cidr }}"
 #    no_gateway_ip: yes
 octavia_amp_network:
-            name: lb-mgmt-net
-            provider_network_type: vlan
-            provider_segmentation_id: 1005
-            provider_physical_network: physnet1
-            external: false
-            shared: false
-            subnet:
-              name: lb-mgmt-subnet
-              cidr: "10.1.2.0/24"
-              allocation_pool_start: "10.1.2.100"
-              allocation_pool_end: "10.1.2.200"
-              gateway_ip: "10.1.2.1"
-              enable_dhcp: yes
-
+  name: lb-mgmt-net
+  provider_network_type: vlan
+  provider_segmentation_id: 1005
+  provider_physical_network: physnet1
+  external: false
+  shared: false
+  subnet:
+    name: lb-mgmt-subnet
+    cidr: "10.1.2.0/24"
+    allocation_pool_start: "10.1.2.100"
+    allocation_pool_end: "10.1.2.200"
+    gateway_ip: "10.1.2.1"
+    enable_dhcp: yes
 
 # Octavia management network subnet CIDR.
 #octavia_amp_network_cidr: 10.1.0.0/24
@@ -910,10 +909,10 @@ octavia_amp_image_tag: "amphora"
 octavia_loadbalancer_topology: "SINGLE"
 
 # The following variables are ignored as along as `octavia_auto_configure` is set to `yes`.
-#octavia_amp_image_owner_id:
-octavia_amp_boot_network_list: lb-mngmt-net
-octavia_amp_secgroup_list: lb-mgmt-sec-grp
-octavia_amp_flavor_id: 255
+# octavia_amp_image_owner_id:
+# octavia_amp_boot_network_list: lb-mngmt-net
+# octavia_amp_secgroup_list: lb-mgmt-sec-grp
+# octavia_amp_flavor_id: 255
 
 ####################
 # Corosync options
