@@ -17,7 +17,7 @@ OSTACKLAB=openstack_kolla_ansible_2023_2.xml
 sudo vnx -f $OSTACKLAB -x create-extnet
 #sudo vnx -f $OSTACKLAB -x load-octavia-controller
 sudo vnx -f $OSTACKLAB -x load-octavia-admin
-#sudo vnx -f $OSTACKLAB -x load-img
+sudo vnx -f $OSTACKLAB -x load-img
 
 #Crear mi usuario
 openstack --os-cloud kolla-admin user create myuser --project admin --password xxxx
@@ -39,11 +39,6 @@ chmod 700 ./tmp/keys/bbdd
 chmod 700 ./tmp/keys/s1
 chmod 700 ./tmp/keys/s2
 chmod 700 ./tmp/keys/s3
-
-#Crear flavors
-openstack flavor show m1.nano >/dev/null 2>&amp;1    || openstack flavor create --id 0 --vcpus 1 --ram 64 --disk 1 m1.nano
-openstack flavor show m1.tiny >/dev/null 2>&amp;1    || openstack flavor create --id 1 --vcpus 1 --ram 512 --disk 1 m1.tiny
-openstack flavor show m1.smaller >/dev/null 2>&amp;1 || openstack flavor create --id 6 --vcpus 1 --ram 512 --disk 3 m1.smaller
 
 #Importar imagenes de las VMs
 openstack image create "focal-servers-vnx" --file /home/pabloreal/openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress

@@ -116,7 +116,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         <!-- Añadido por Pablo. Cosas para SSH que no sé si hacen falta-->
         sed -i 's/#enable_neutron_port_forwarding:.*/enable_neutron_port_forwarding: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_nova_ssh:.*/enable_nova_ssh: "yes"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_neutron_bgp_dragent:.*/enable_neutron_bgp_dragent: "yes"/' /etc/kolla/globals.yml
 
         <!-- Añadido Por Pablo. Habilitar Octavia-->
         sed -i 's/#octavia_network_interface:.*/octavia_network_interface: "eth3"/' /etc/kolla/globals.yml
