@@ -1,11 +1,42 @@
 Importante, utilizar la rama antelope.
 
-SITUACIÓN ACTUAL:
+SITUACIÓN ACTUAL: OCTAVIA FUNCIONA!!!!!!!!!!!!!!!!
+	- Del escenario de CNVR funciona todo salvo el firewall, pero David ha dicho que por el momento pase.
+	- Hay otro chico con un TFG en el que utiliza Terraform en vez de Heat para crear todos los elementos de la red.
+
+TAREAS ACTUALES:
+	- Actualizar a Openstack 2024.1
+	- Configurar autoescalado (mirar Ceilometer)
+	
+	
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------	
+OPENSTACK 2024.1
+
+	- Se necesita una version de ansible-core de 2.15 o 2.16 - ERROR: Ansible version should be between 2.15 and 2.16. Current version is 2.14.16 which is not supported
+	- Octavia vuelve a fallar con el error de No Host was found. 
+		- Creo que tiene que ver con la RAM del nodo controller. Revisar uso de RAM con el comando: vmstat -s -S M
+	- Solucionado. Ahora da problemas la imagen de amphora. Creo que es porque se ha construido con una version anterior de Octavia.
+		- Hay que crear una nueva imagen de amphora para OpenStack 2024.1. Hecho, nueva imagen en: /home/pabloreal/prueba-octavia/octavia/diskimage-create/amphora-x64-haproxy.qcow2
+		
+		
+		2024-05-11 18:17:40.860 19 ERROR taskflow.conductors.backends.impl_executor octavia.common.exceptions.ComputeBuildException: Failed to build compute instance due to: {'code': 500, 'created': '2024-05-11T18:17:37Z', 'message': 'Build of instance fedd3edf-2f53-4b56-b23b-227109aef826 aborted: Image 4ab395a3-7733-4745-9318-bac7a0f6a597 is unacceptable: Unable to convert image to raw: Image /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part is unacceptable: ', 'details': 'Traceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 89, in _convert_image\n    nova.privsep.qemu.unprivileged_convert_image(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/privsep/qemu.py", line 219, in unprivileged_convert_image\n    processutils.execute(*cmd + [dest])\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_concurrency/processutils.py", line 444, in execute\n    raise ProcessExecutionError(exit_code=_returncode,\noslo_concurrency.processutils.ProcessExecutionError: Unexpected error while running command.\nCommand: qemu-img convert -t none -O raw -f qcow2 /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.converted\nExit code: 1\nStdout: \'\'\nStderr: \'qemu-img: error while reading at byte 4095475712: Input/output error\\n\'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 171, in fetch_to_raw\n    convert_image(path_tmp, staged, fmt, \'raw\')\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 66, in convert_image\n    _convert_image(source, dest, in_format, out_format, run_as_root,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 102, in _convert_image\n    raise exception.ImageUnacceptable(image_id=source, reason=msg)\nnova.exception.ImageUnacceptable: Image /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part is unacceptable: Unable to convert image to raw: Unexpected error while running command.\nCommand: qemu-img convert -t none -O raw -f qcow2 /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.converted\nExit code: 1\nStdout: \'\'\nStderr: \'qemu-img: error while reading at byte 4095475712: Input/output error\\n\'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2632, in _build_and_run_instance\n    self.driver.spawn(context, instance, image_meta,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 4619, in spawn\n    created_instance_dir, created_disks = self._create_image(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 5029, in _create_image\n    created_disks = self._create_and_inject_local_root(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 5161, in _create_and_inject_local_root\n    self._try_fetch_image_cache(backend, fetch_func, context,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 11392, in _try_fetch_image_cache\n    image.cache(fetch_func=fetch_func,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/imagebackend.py", line 300, in cache\n    self.create_image(fetch_func_sync, base, size,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/imagebackend.py", line 675, in create_image\n    prepare_template(target=base, *args, **kwargs)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_concurrency/lockutils.py", line 412, in inner\n    return f(*args, **kwargs)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/imagebackend.py", line 297, in fetch_func_sync\n    fetch_func(target=target, *args, **kwargs)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/utils.py", line 457, in fetch_image\n    images.fetch_to_raw(context, image_id, target, trusted_certs)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 174, in fetch_to_raw\n    raise exception.ImageUnacceptable(image_id=image_href,\nnova.exception.ImageUnacceptable: Image 4ab395a3-7733-4745-9318-bac7a0f6a597 is unacceptable: Unable to convert image to raw: Image /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part is unacceptable: Unable to convert image to raw: Unexpected error while running command.\nCommand: qemu-img convert -t none -O raw -f qcow2 /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.converted\nExit code: 1\nStdout: \'\'\nStderr: \'qemu-img: error while reading at byte 4095475712: Input/output error\\n\'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2447, in _do_build_and_run_instance\n    self._build_and_run_instance(context, instance, image,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2717, in _build_and_run_instance\n    raise exception.BuildAbortException(instance_uuid=instance.uuid,\nnova.exception.BuildAbortException: Build of instance fedd3edf-2f53-4b56-b23b-227109aef826 aborted: Image 4ab395a3-7733-4745-9318-bac7a0f6a597 is unacceptable: Unable to convert image to raw: Image /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part is unacceptable: Unable to convert image to raw: Unexpected error while running command.\nCommand: qemu-img convert -t none -O raw -f qcow2 /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.converted\nExit code: 1\nStdout: \'\'\nStderr: \'qemu-img: error while reading at byte 4095475712: Input/output error\\n\'\n'}
+
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ANSIBLE VERSIONS: https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html
++----------------------------------+-----------+----------------+
+| Ansible Community Package Release| Status    | ansible-core   |
++----------------------------------+-----------+----------------+
+| 10.0.0                           | Develop   | 2.17           |
+| 9.x                              | Current   | 2.16           |
+| 8.x                              | Unmantain | 2.15           |
+| 7.x                              | Unmantain | 2.14           |
+| 6.x                              | Unmantain | 2.13           |
++----------------------------------+-----------+----------------+
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 LOAD BALANCER
-	- Octavia parece que se arranca en el nodo Network, viendo los logs del despliegue de Kolla.
-	
 
 	En la task Deploy si se hacen todos los cambios en globals.yml:
 

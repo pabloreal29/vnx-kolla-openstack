@@ -69,6 +69,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <filetree seq="on_boot" root="/tmp/">conf/admin/hosts</filetree>
     <filetree seq="on_boot" root="/root/">conf/admin/deploy-ostack</filetree>
     <filetree seq="on_boot" root="/tmp/">deploy/globals.yml</filetree>
+    <filetree seq="on_boot" root="/tmp/">deploy/amphora-x64-haproxy.qcow2</filetree>
 
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
@@ -96,8 +97,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 	python3 -m venv /root/kolla
         source /root/kolla/bin/activate
         pip install -U pip
-        pip install 'ansible>=6,&lt;8'
-        pip install git+https://opendev.org/openstack/kolla-ansible@stable/2023.2
+        <!-- pip install 'ansible>=6,&lt;8' -->
+        pip install ansible 'ansible>=8,&lt;10'
+        pip install git+https://opendev.org/openstack/kolla-ansible@stable/2024.1
         sudo mkdir -p /etc/kolla
         sudo chown $USER:$USER /etc/kolla
         cp -r /root/kolla/share/kolla-ansible/etc_examples/kolla/* /etc/kolla
@@ -113,11 +115,8 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_ceilometer:.*/enable_ceilometer: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_gnocchi:.*/enable_gnocchi: "yes"/' /etc/kolla/globals.yml
 
-        <!-- Añadido por Pablo. Cosas para SSH que no sé si hacen falta-->
-        sed -i 's/#enable_neutron_port_forwarding:.*/enable_neutron_port_forwarding: "yes"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_nova_ssh:.*/enable_nova_ssh: "yes"/' /etc/kolla/globals.yml
-
         <!-- Añadido Por Pablo. Habilitar Octavia-->
+        sed -i 's/#enable_nova_ssh:.*/enable_nova_ssh: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#octavia_network_interface:.*/octavia_network_interface: "eth3"/' /etc/kolla/globals.yml
         sed -i 's/#enable_octavia:.*/enable_octavia: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_redis:.*/enable_redis: "yes"/' /etc/kolla/globals.yml
@@ -134,11 +133,15 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 }' /etc/kolla/globals.yml
         sed -i '0,/octavia_amp_network:/{s/octavia_amp_network:.*/#octavia_amp_network:/}' /etc/kolla/globals.yml
 
+        <!-- Añadido Por Pablo. Mejorar rendimiento de Octavia. Valores por defecto: amp_active_retries = 100 y amp_active_wait_sec = 2-->
+        sed -i -e 's/amp_active_retries =.*/amp_active_retries = 1000/' /root/kolla/share/kolla-ansible/ansible/roles/octavia/templates/octavia.conf.j2
+        sed -i -e 's/amp_active_wait_sec =.*/amp_active_wait_sec = 2/' /root/kolla/share/kolla-ansible/ansible/roles/octavia/templates/octavia.conf.j2
+
         <!-- Añadido por David para cambiar MTU a 1400 y así poder acceder por SSH-->
         sed -i -e 's/network_vlan_ranges =.*/network_vlan_ranges = physnet1/' /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/ml2_conf.ini.j2
         echo 'dhcp-option-force=26,1400' >> /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/dnsmasq.conf.j2
 
-        pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2023.2
+        pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2024.1
 
         <!-- Añadido por Pablo -->
         pip install python-octaviaclient
@@ -162,16 +165,14 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     </exec>
 
     <!-- Añadido por Pablo. Documentación disponible en: https://docs.openstack.org/kolla-ansible/latest/reference/networking/octavia.html#octavia-amphora-image -->
-    <exec seq="load-octavia-admin" type="verbatim">
+    <exec seq="load-octavia" type="verbatim">
 
         source /root/kolla/bin/activate
-        <!-- source /etc/kolla/admin-openrc.sh -->
         . /etc/kolla/octavia-openrc.sh
 
-        openstack flavor show amphora >/dev/null 2>&amp;1 || openstack flavor create --id 200 --vcpus 1 --ram 1024 --disk 2 amphora --private 
-        wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/ubuntu-amphora-haproxy-amd64.qcow2
-        openstack image create amphora-x64-haproxy.qcow2 --container-format bare --disk-format qcow2 --private --tag amphora --file /tmp/images/ubuntu-amphora-haproxy-amd64.qcow2 --property hw_architecture='x86_64' --property hw_rng_model=virtio
-        rm /tmp/images/ubuntu-amphora-haproxy-amd64.qcow2
+        <!-- wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/ubuntu-amphora-haproxy-amd64.qcow2 -->
+        openstack image create amphora-x64-haproxy.qcow2 --container-format bare --disk-format qcow2 --private --tag amphora --file /tmp/amphora-x64-haproxy.qcow2 --property hw_architecture='x86_64' --property hw_rng_model=virtio
+        <!-- rm /tmp/amphora-x64-haproxy.qcow2  -->
     </exec>
 
     <exec seq="load-img" type="verbatim">
@@ -200,8 +201,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         rm -f /tmp/images/jammy-server-cloudimg-amd64-vnx.qcow2
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/jammy-server-cloudimg-amd64-vnx.qcow2
 	      openstack image create "jammy-server-cloudimg-amd64-vnx" --file /tmp/images/jammy-server-cloudimg-amd64-vnx.qcow2 --disk-format qcow2 --container-format bare --public --progress
-        rm /tmp/images/jammy-server-cloudimg-amd64-vnx.qcow2
-        
+        rm /tmp/images/jammy-server-cloudimg-amd64-vnx.qcow2 
         
     </exec>
 
@@ -316,7 +316,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="controller" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>4G</mem>
+    <mem>8G</mem> <!--Creo que el error de "No Hosts were found" de Octavia tiene que ver con la RAM del controller, estaba en 4GB y subo a 8GB -->
     <!--console id="0" display="yes"/-->
 
     <if id="1" net="MgmtNet">
@@ -328,7 +328,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
     <!-- Añadido por Pablo -->
     <if id="3" net="VlanNet">
-      <!-- <ipv4>10.1.2.1/24</ipv4> -->
     </if>
 
     <!--if id="9" net="virbr0">
@@ -351,16 +350,10 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #systemd-resolve --set-dns=8.8.8.8 --interface=eth1
 	resolvectl dns 2 1.1.1.1
 
-        <!-- Añadido por Pablo -->
+        <!-- Añadido por Pablo. Documentacion: https://access.redhat.com/documentation/es-es/red_hat_enterprise_linux/7/html/networking_guide/sec-configure_802_1q_vlan_tagging_using_the_command_line-->
         ip link add link eth3 name eth3.1005 type vlan id 1005
         ip link set dev eth3.1005 up
-        ip addr add 10.1.2.1/24 dev eth3.1005
-    </exec>
-
-
-    <!-- Añadido por Pablo-->
-    <exec seq="load-octavia-controller" type="verbatim">
-        systemctl restart kolla-octavia_api-container.service kolla-octavia_health_manager-container.service kolla-octavia_housekeeping-container.service kolla-octavia_worker-container.service
+        ip addr add 10.10.0.0/24 dev eth3.1005
     </exec>
 
   </vm>
@@ -374,7 +367,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
   <!--vm name="network" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64">
     <filesystem type="cow">filesystems/rootfs_kvm_ubuntu64-ostack-network</filesystem-->
-    <mem>2G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.21/24</ipv4>
     </if>
@@ -422,7 +415,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
     <vm name="compute1" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>2G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.31/24</ipv4>
     </if>
@@ -471,7 +464,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="compute2" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>2G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.32/24</ipv4>
     </if>
@@ -520,7 +513,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="compute3" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>2G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.33/24</ipv4>
     </if>

@@ -89,11 +89,11 @@ sudo vnx -f $OSTACKVLANLAB --create
 
 Para hacer cambios no hace falta borrar el escenario, solo editar el fichero /etc/kolla/globals.yml. Para ello, seguir los siguientes pasos:
 
-1. Realizar cambios dentro de openstack_kolla_ansible_2023_2.xml, mirar el apartado Mis cambios:
+1. Realizar cambios dentro de openstack_kolla_ansible_2024_1.xml, mirar el apartado Mis cambios:
 
 2. Ejecutar los cambios sobre el escenario: 
 ```bash
-sudo vnx -f openstack_kolla_ansible_2023_2.xml -x config-admin
+sudo vnx -f openstack_kolla_ansible_2024_1.xml -x config-admin
 ```
 
 3. Acceder al nodo admin:

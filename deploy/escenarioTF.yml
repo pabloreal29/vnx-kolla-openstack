@@ -38,7 +38,7 @@ resources:
         - start: 10.1.2.2
           end: 10.1.2.100
 
-  ## FIREWALL -------------------------------------------------------
+  ## ROUTER FIREWALL -------------------------------------------------------
   
   firewall_router:
     type: OS::Neutron::Router
@@ -120,6 +120,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net1}
+      name: port1_net1
       security_groups: 
         - {get_resource: security_group}
       fixed_ips: 
@@ -129,6 +130,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net1}
+      name: port2_net1
       security_groups: 
         - {get_resource: security_group}
       fixed_ips: 
@@ -138,6 +140,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net1}
+      name: port3_net1
       security_groups: 
         - {get_resource: security_group}
       fixed_ips: 
@@ -150,6 +153,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net2}
+      name: port1_net2
       security_groups: 
         - {get_resource: security_group}
       fixed_ips: 
@@ -159,6 +163,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net2}
+      name: port2_net2
       security_groups: 
         - {get_resource: security_group}
       fixed_ips: 
@@ -168,6 +173,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net2}
+      name: port3_net2
       security_groups: 
         - {get_resource: security_group}
       fixed_ips: 
@@ -177,6 +183,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net2}
+      name: portBBDD_net2
       security_groups: 
         - {get_resource: security_group}
       fixed_ips: 
@@ -189,6 +196,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net1}
+      name: port_admin1
       security_groups: 
         - {get_resource: security_group}
       fixed_ips:
@@ -199,6 +207,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: {get_resource: net2}
+      name: port_admin2
       security_groups: 
         - {get_resource: security_group}
       fixed_ips: 

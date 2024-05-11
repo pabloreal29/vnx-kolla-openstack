@@ -13,10 +13,9 @@ openstack --os-cloud kolla-admin service list
 source deploy/habilitar-nat.sh
 
 #Cargar imagenes y crear red externa
-OSTACKLAB=openstack_kolla_ansible_2023_2.xml
+OSTACKLAB=openstack_kolla_ansible_2024_1.xml
 sudo vnx -f $OSTACKLAB -x create-extnet
-#sudo vnx -f $OSTACKLAB -x load-octavia-controller
-sudo vnx -f $OSTACKLAB -x load-octavia-admin
+sudo vnx -f $OSTACKLAB -x load-octavia
 sudo vnx -f $OSTACKLAB -x load-img
 
 #Crear mi usuario
@@ -41,16 +40,17 @@ chmod 700 ./tmp/keys/s2
 chmod 700 ./tmp/keys/s3
 
 #Importar imagenes de las VMs
-openstack image create "focal-servers-vnx" --file /home/pabloreal/openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-openstack image create "focal-bbdd-vnx" --file /home/pabloreal/openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-openstack image create "focal-admin-vnx" --file /home/pabloreal/openstack-images/admin_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-servers-vnx --file /home/pabloreal/openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-bbdd-vnx --file /home/pabloreal/openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-admin-vnx --file /home/pabloreal/openstack-images/admin_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 
 #Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
 #Nota: he reducido las vcpus y la ram respecto al trabajo de cnvr
 openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 
 #Crear el stack con todos los elementos del escenario
-openstack stack create -t deploy/escenarioTF.yml stackTF
+SERVERS_IMAGE_ID=$(openstack image show focal-servers-vnx -f value -c id)
+openstack stack create -t deploy/escenarioTF.yml --parameter "servers_image_id=$SERVERS_IMAGE_ID" stackTF
 
 # # Borrar el stack
 # openstack stack delete -y stackTF
