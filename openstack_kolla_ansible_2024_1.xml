@@ -69,7 +69,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <filetree seq="on_boot" root="/tmp/">conf/admin/hosts</filetree>
     <filetree seq="on_boot" root="/root/">conf/admin/deploy-ostack</filetree>
     <filetree seq="on_boot" root="/tmp/">deploy/globals.yml</filetree>
-    <filetree seq="on_boot" root="/tmp/">deploy/amphora-x64-haproxy.qcow2</filetree>
+    <filetree seq="on_boot" root="/tmp/">/home/pabloreal/openstack-images/amphora-x64-haproxy.qcow2</filetree>
 
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
