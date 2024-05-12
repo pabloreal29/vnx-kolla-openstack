@@ -24,7 +24,7 @@ cd vnx-kolla-openstack/
 ssh-keygen -t rsa -f conf/ssh/id_rsa -q -N ""
 sudo chown 644 conf/ssh/id_rsa
 # Choose the scenario version to use
-OSTACKLAB=openstack_kolla_ansible.xml       # Multiple net interfaces: TunnNet (eth2), VlanNet (eth3), ExtNet (eth4)
+OSTACKLAB=openstack_kolla_ansible_2024_1.xml      # Multiple net interfaces: TunnNet (eth2), VlanNet (eth3), ExtNet (eth4)
 OSTACKLAB=openstack_kolla_ansible-vlan.xml  # VLAN based net interfaces: TunnNet (eth5.20), VlanNet (eth5.30), ExtNet (eth5.10)
 sudo vnx -f $OSTACKLAB -v --create
 sudo vnx -f $OSTACKLAB -x config-admin

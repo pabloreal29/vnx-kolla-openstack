@@ -26,14 +26,14 @@ source deploy/myuser-openrc.sh
 #Crear parejas de claves
 rm -rf ./tmp/keys
 mkdir -p ./tmp/keys
-openstack keypair create admin > ./tmp/keys/admin
+openstack keypair create administrador > ./tmp/keys/administrador
 openstack keypair create bbdd > ./tmp/keys/bbdd
 openstack keypair create s1 > ./tmp/keys/s1
 openstack keypair create s2 > ./tmp/keys/s2
 openstack keypair create s3 > ./tmp/keys/s3
 
 #Proteger las claves privadas para que solo las pueda utilizar el owner
-chmod 700 ./tmp/keys/admin
+chmod 700 ./tmp/keys/administrador
 chmod 700 ./tmp/keys/bbdd
 chmod 700 ./tmp/keys/s1
 chmod 700 ./tmp/keys/s2
@@ -49,8 +49,7 @@ openstack image create focal-admin-vnx --file /home/pabloreal/openstack-images/a
 openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 
 #Crear el stack con todos los elementos del escenario
-SERVERS_IMAGE_ID=$(openstack image show focal-servers-vnx -f value -c id)
-openstack stack create -t deploy/escenarioTF.yml --parameter "servers_image_id=$SERVERS_IMAGE_ID" stackTF
+openstack stack create -t deploy/escenarioTF.yml stackTF
 
 # # Borrar el stack
 # openstack stack delete -y stackTF

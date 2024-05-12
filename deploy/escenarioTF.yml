@@ -61,7 +61,6 @@ resources:
     properties:
       name: load_balancer
       vip_subnet: {get_resource: subnet1}
-      vip_address: 10.1.1.23
 
   lb_listener:
     type: OS::Octavia::Listener
@@ -201,7 +200,6 @@ resources:
         - {get_resource: security_group}
       fixed_ips:
       - subnet: {get_resource: subnet1} 
-        ip_address: 10.1.1.57
   
   port_admin2:
     type: OS::Neutron::Port
@@ -286,10 +284,10 @@ resources:
         echo "<h1>Bienvenidos al Servidor 3</h1>" > /var/www/html/index.html
 
 
-  admin:
+  administrador:
     type: OS::Nova::Server
     properties:
-      name: admin
+      name: administrador
       image: focal-admin-vnx
       flavor: m1.smaller
       networks:
@@ -298,7 +296,7 @@ resources:
         floating_ip: {get_resource: floating_ipAdmin}
       - network: {get_resource: net2}
         port: {get_resource: port_admin2}
-      key_name: admin
+      key_name: administrador
 
     
   ## BASE DE DATOS ----------------------------------------

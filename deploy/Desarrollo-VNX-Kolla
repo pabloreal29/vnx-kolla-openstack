@@ -1,12 +1,12 @@
 Importante, utilizar la rama antelope.
 
-SITUACIÓN ACTUAL: OCTAVIA FUNCIONA!!!!!!!!!!!!!!!!
+COMENTARIOS DE DAVID:
 	- Del escenario de CNVR funciona todo salvo el firewall, pero David ha dicho que por el momento pase.
 	- Hay otro chico con un TFG en el que utiliza Terraform en vez de Heat para crear todos los elementos de la red.
 
 TAREAS ACTUALES:
-	- Actualizar a Openstack 2024.1
-	- Configurar autoescalado (mirar Ceilometer)
+	- Actualizar a Openstack 2024.1 - OK!!!
+	- Configurar autoescalado (mirar Ceilometer).
 	
 	
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------	
@@ -14,12 +14,11 @@ OPENSTACK 2024.1
 
 	- Se necesita una version de ansible-core de 2.15 o 2.16 - ERROR: Ansible version should be between 2.15 and 2.16. Current version is 2.14.16 which is not supported
 	- Octavia vuelve a fallar con el error de No Host was found. 
-		- Creo que tiene que ver con la RAM del nodo controller. Revisar uso de RAM con el comando: vmstat -s -S M
-	- Solucionado. Ahora da problemas la imagen de amphora. Creo que es porque se ha construido con una version anterior de Octavia.
+		- Creo que tiene que ver con la RAM del nodo controller, se ha aumentado a 6GB. Revisar uso de RAM con el comando: vmstat -s -S M
+		- También he aumentado la RAM de network y compute1-3 a 3GB.
+	- Ahora da problemas la imagen de amphora. Creo que es porque se ha construido con una version anterior de Octavia.
 		- Hay que crear una nueva imagen de amphora para OpenStack 2024.1. Hecho, nueva imagen en: /home/pabloreal/prueba-octavia/octavia/diskimage-create/amphora-x64-haproxy.qcow2
-		
-		
-		2024-05-11 18:17:40.860 19 ERROR taskflow.conductors.backends.impl_executor octavia.common.exceptions.ComputeBuildException: Failed to build compute instance due to: {'code': 500, 'created': '2024-05-11T18:17:37Z', 'message': 'Build of instance fedd3edf-2f53-4b56-b23b-227109aef826 aborted: Image 4ab395a3-7733-4745-9318-bac7a0f6a597 is unacceptable: Unable to convert image to raw: Image /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part is unacceptable: ', 'details': 'Traceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 89, in _convert_image\n    nova.privsep.qemu.unprivileged_convert_image(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/privsep/qemu.py", line 219, in unprivileged_convert_image\n    processutils.execute(*cmd + [dest])\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_concurrency/processutils.py", line 444, in execute\n    raise ProcessExecutionError(exit_code=_returncode,\noslo_concurrency.processutils.ProcessExecutionError: Unexpected error while running command.\nCommand: qemu-img convert -t none -O raw -f qcow2 /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.converted\nExit code: 1\nStdout: \'\'\nStderr: \'qemu-img: error while reading at byte 4095475712: Input/output error\\n\'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 171, in fetch_to_raw\n    convert_image(path_tmp, staged, fmt, \'raw\')\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 66, in convert_image\n    _convert_image(source, dest, in_format, out_format, run_as_root,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 102, in _convert_image\n    raise exception.ImageUnacceptable(image_id=source, reason=msg)\nnova.exception.ImageUnacceptable: Image /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part is unacceptable: Unable to convert image to raw: Unexpected error while running command.\nCommand: qemu-img convert -t none -O raw -f qcow2 /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.converted\nExit code: 1\nStdout: \'\'\nStderr: \'qemu-img: error while reading at byte 4095475712: Input/output error\\n\'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2632, in _build_and_run_instance\n    self.driver.spawn(context, instance, image_meta,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 4619, in spawn\n    created_instance_dir, created_disks = self._create_image(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 5029, in _create_image\n    created_disks = self._create_and_inject_local_root(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 5161, in _create_and_inject_local_root\n    self._try_fetch_image_cache(backend, fetch_func, context,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 11392, in _try_fetch_image_cache\n    image.cache(fetch_func=fetch_func,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/imagebackend.py", line 300, in cache\n    self.create_image(fetch_func_sync, base, size,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/imagebackend.py", line 675, in create_image\n    prepare_template(target=base, *args, **kwargs)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_concurrency/lockutils.py", line 412, in inner\n    return f(*args, **kwargs)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/imagebackend.py", line 297, in fetch_func_sync\n    fetch_func(target=target, *args, **kwargs)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/utils.py", line 457, in fetch_image\n    images.fetch_to_raw(context, image_id, target, trusted_certs)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/images.py", line 174, in fetch_to_raw\n    raise exception.ImageUnacceptable(image_id=image_href,\nnova.exception.ImageUnacceptable: Image 4ab395a3-7733-4745-9318-bac7a0f6a597 is unacceptable: Unable to convert image to raw: Image /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part is unacceptable: Unable to convert image to raw: Unexpected error while running command.\nCommand: qemu-img convert -t none -O raw -f qcow2 /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.converted\nExit code: 1\nStdout: \'\'\nStderr: \'qemu-img: error while reading at byte 4095475712: Input/output error\\n\'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2447, in _do_build_and_run_instance\n    self._build_and_run_instance(context, instance, image,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2717, in _build_and_run_instance\n    raise exception.BuildAbortException(instance_uuid=instance.uuid,\nnova.exception.BuildAbortException: Build of instance fedd3edf-2f53-4b56-b23b-227109aef826 aborted: Image 4ab395a3-7733-4745-9318-bac7a0f6a597 is unacceptable: Unable to convert image to raw: Image /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part is unacceptable: Unable to convert image to raw: Unexpected error while running command.\nCommand: qemu-img convert -t none -O raw -f qcow2 /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.part /var/lib/nova/instances/_base/cb2dc252500e027f07e0b4a3e7a6912ff5392a11.converted\nExit code: 1\nStdout: \'\'\nStderr: \'qemu-img: error while reading at byte 4095475712: Input/output error\\n\'\n'}
+	- Todo solucionado!
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -34,111 +33,6 @@ ANSIBLE VERSIONS: https://docs.ansible.com/ansible/latest/reference_appendices/r
 | 7.x                              | Unmantain | 2.14           |
 | 6.x                              | Unmantain | 2.13           |
 +----------------------------------+-----------+----------------+
-
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-LOAD BALANCER
-
-	En la task Deploy si se hacen todos los cambios en globals.yml:
-
-	PLAY [Apply role octavia]
-	TASK [service-ks-register : octavia | Creating services] ***********************************************************************************
-	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (5 retries left).
-	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (4 retries left).
-	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (3 retries left).
-	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (2 retries left).
-	FAILED - RETRYING: [10.0.0.11]: octavia | Creating services (1 retries left).
-	
-	failed: [10.0.0.11] (item=octavia (load-balancer)) => {"action": "os_keystone_service", "ansible_loop_var": "item", "attempts": 5, "changed": false, "item": {"description": "Octavia Load Balancing Service", "endpoints": [{"interface": "internal", "url": "http://10.0.0.250:9876"}, {"interface": "public", "url": "http://10.0.0.250:9876"}], "name": "octavia", "type": "load-balancer"}, "module_stderr": "Failed to discover available identity versions when contacting http://10.0.0.250:5000. Attempting to parse version from URL. Could not find versioned identity endpoints when attempting to authenticate. Please check that your auth_url is correct. Service Unavailable (HTTP 503)\n", "module_stdout": "", "msg": "MODULE FAILURE\nSee stdout/stderr for the exact error", "rc": 1}
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-IMPORTANTE. Hay que quitar el openstack_core para que no de el error anterior:
-	- Hay que asignar una IP a eth3 en controller (y no sé si en network también, creo que es en controller), con la IP de gateway_ip: "10.1.2.1". Par ello, acceder al nodo y realizar estos pasos:
-		ip link add link eth3 name eth3.1005 type vlan id 1005
-		ip link set dev eth3.1005 up
-		ip addr add 10.1.2.1/24 dev eth3.1005
-		
-		ip link delete eth3.1005 #Para borrar la interfaz de red
-	
-	- Estoy probando a crear un balanceador de carga con Octavia.
-	- Tengo que utilizar VlaNet como red de VLAN para gestionar el tráfico de mngmnt de Octavia. Sin embargo, esta red solo conecta el nodo de red y los de computación.
-	- Por eso, hay que modificar el xml para añadir una interfaz de red para VlanNet en admin y controller. Ahora voy a probar a añadirla SOLO en controller, no en admin. Mismo error, el de arriba.
-		- Si no lo hago, sale un error al desplegar OpenStack, al configurar la red de mngment de Octavia, que dice que no se encuentra la VlanNet.
-	
-	- Cambios en globals.yml:
-			octavia_network_interface: "eth3" 
-			
-			octavia_auto_configure: yes
-			octavia_amp_flavor:
-			  flavorid: 255
-			  name: "amphora"
-			  is_public: no
-			  vcpus: 1
-			  ram: 512
-			  disk: 5
-			  
-			# Octavia security groups. lb-mgmt-sec-grp is for amphorae.
-			octavia_amp_security_groups:
-			    mgmt-sec-grp:
-			      name: lb-mgmt-sec-grp
-			      rules:
-				- protocol: icmp
-				- protocol: tcp
-				  src_port: 22
-				  dst_port: 22
-				- protocol: tcp
-				  src_port: 5555
-				  dst_port: 5555
-			 
-			octavia_amp_network:
-			  name: lb-mgmt-net
-			  provider_network_type: vlan
-			  provider_segmentation_id: 1005
-			  provider_physical_network: physnet1
-			  external: false
-			  shared: false
-			  subnet:
-			    name: lb-mgmt-subnet
-			    cidr: "10.1.2.0/24"
-			    allocation_pool_start: "10.1.2.100"
-			    allocation_pool_end: "10.1.2.200"
-			    gateway_ip: "10.1.2.1"
-			    enable_dhcp: yes
-
-
-			octavia_amp_image_tag: "amphora"
-
-			# Load balancer topology options are [ SINGLE, ACTIVE_STANDBY ]
-			octavia_loadbalancer_topology: "SINGLE"
-			
-			# The following variables are ignored as along as `octavia_auto_configure` is set to `yes`.
-			#octavia_amp_image_owner_id:
-			octavia_amp_boot_network_list: lb-mngmt-net
-			octavia_amp_secgroup_list: lb-mgmt-sec-grp
-			octavia_amp_flavor_id: 255
-		
-		
-	- El error que sale es que no detecta la imagen de amphora (recuerda que la he importado yo de VNX, no he seguido la receta de Kolla).
-	- ERROR YA SUPERADO!! Este error se puede ver en el nodo controller, dentro de /var/log/kolla/octavia/octavia-worker.log.
-		2024-04-26 09:38:29.193 17 ERROR octavia.compute.drivers.nova_driver octavia.common.exceptions.ImageGetException: Failed to retrieve image with amphora tag.
-		2024-04-26 09:38:29.193 17 ERROR octavia.compute.drivers.nova_driver 
-		2024-04-26 09:38:29.193 17 ERROR octavia.controller.worker.v2.tasks.compute_tasks [-] Compute create for amphora id: 7eb70294-caaa-4e0f-b3d8-e4ef524472a2 failed:
-		octavia.common.exceptions.ComputeBuildException: Failed to build compute instance due to: Failed to retrieve image with amphora tag.
-		
-	- Cambiando el id del owner de octavia en el nodo controlador consigo quitarme ese error, ahora me dice: No valid host was found:
-	- El error es:
-		2024-04-26 11:29:17.332 18 ERROR octavia.common.base_taskflow octavia.common.exceptions.ComputeBuildException: Failed to build compute instance due to: {'code': 500, 'created': '2024-04-26T11:29:14Z', 'message': 'No valid host was found. ', 'details': 'Traceback (most recent call last):\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/conductor/manager.py", line 1654, in schedule_and_build_instances\n    host_lists = self._schedule_instances(context, request_specs[0],\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/conductor/manager.py", line 942, in _schedule_instances\n    host_lists = self.query_client.select_destinations(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/scheduler/client/query.py", line 41, in select_destinations\n    return self.scheduler_rpcapi.select_destinations(context, spec_obj,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/scheduler/rpcapi.py", line 160, in select_destinations\n    return cctxt.call(ctxt, \'select_destinations\', **msg_args)\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/rpc/client.py", line 190, in call\n    result = self.transport._send(\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/transport.py", line 123, in _send\n    return self._driver.send(target, ctxt, message,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/_drivers/amqpdriver.py", line 689, in send\n    return self._send(target, ctxt, message, wait_for_reply, timeout,\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/_drivers/amqpdriver.py", line 681, in _send\n    raise result\nnova.exception_Remote.NoValidHost_Remote: No valid host was found. \nTraceback (most recent call last):\n\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_messaging/rpc/server.py", line 244, in inner\n    return func(*args, **kwargs)\n\n  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/scheduler/manager.py", line 243, in select_destinations\n    raise exception.NoValidHost(reason="")\n\nnova.exception.NoValidHost: No valid host was found. \n\n'}
-
-
-	-Cambios a hacer:
-		nano /etc/kolla/octavia-(todos)/octavia.conf y asignar en la propiedad amp_image_owner_id el id del project admin.
-		systemctl restart kolla-octavia_api-container.service kolla-octavia_health_manager-container.service kolla-octavia_housekeeping-container.service kolla-octavia_worker-container.service
-	- Quiero probar con la red de ayer y el nuevo cambio
-
-	- Se puede cambiar el amp_image_owner_id directamente en globals.yml, poniendo octavia_auto_configure: no. Entonces, necesitaremos el octavia_managment_port y este es el 5555 por defecto.
-	
-	admin_project_id=$(openstack project show admin -c id -f value)
-	sed -i "s/#octavia_amp_image_owner_id.*/octavia_amp_image_owner_id: $admin_project_id/" /etc/kolla/globals.yml
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
 FIREWALL
@@ -163,6 +57,10 @@ Errores obtenidos:
 	- Si no: 
 		- Ejecutar: ip link set dev ens4 up. 
 		- Luego eliminar la ruta que se ha creado: ip route del default via 10.1.2.1
+4. Octavia. Problemas encomtrados:
+	- Crear red de VLANs en el nodo controller (VlanNet). A esta red se conectan tanto el nodo de red como los de computación.
+	- Crear nueva imagen de amphora acorde con la versión 2024.1 de OpenStack y subirla al servidor de VNX.
+	- Aumentar RAM tanto del nodo controlador como de los de computación, para evitar problemas del tipo: No Host found.
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 PRUEBAS CON GLANCE
