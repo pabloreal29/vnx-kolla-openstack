@@ -45,19 +45,21 @@ AUTOESCALADO
 	+----------------------------------+-----------+--------------+----------------+---------+-----------+-----------------------------------------+
 	
 	pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack event list example
-	2024-05-19 12:25:57Z [example]: CREATE_IN_PROGRESS  Stack CREATE started
-	2024-05-19 12:25:58Z [example.instance_group]: CREATE_IN_PROGRESS  state changed
-	2024-05-19 12:26:27Z [example.instance_group]: CREATE_COMPLETE  state changed
-	2024-05-19 12:26:27Z [example.scaleout_policy]: CREATE_IN_PROGRESS  state changed
-	2024-05-19 12:26:27Z [example.scalein_policy]: CREATE_IN_PROGRESS  state changed
-	2024-05-19 12:26:28Z [example.scaleout_policy]: CREATE_COMPLETE  state changed
-	2024-05-19 12:26:28Z [example.scalein_policy]: CREATE_COMPLETE  state changed
-	2024-05-19 12:26:28Z [example.cpu_alarm_low]: CREATE_IN_PROGRESS  state changed
-	2024-05-19 12:26:28Z [example.cpu_alarm_high]: CREATE_IN_PROGRESS  state changed
-	2024-05-19 12:26:30Z [example.cpu_alarm_high]: CREATE_COMPLETE  state changed
-	2024-05-19 12:26:30Z [example.cpu_alarm_low]: CREATE_COMPLETE  state changed
-	2024-05-19 12:26:30Z [example]: CREATE_COMPLETE  Stack CREATE completed successfully
-	2024-05-19 12:35:48Z [example.scaleout_policy]: SIGNAL_COMPLETE  No signal details provided
+	2024-05-19 16:35:19Z [example]: CREATE_IN_PROGRESS  Stack CREATE started
+	2024-05-19 16:35:19Z [example.instance_group]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:25Z [example.instance_group]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:25Z [example.scaleout_policy]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:25Z [example.scalein_policy]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:26Z [example.scaleout_policy]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:26Z [example.scalein_policy]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:26Z [example.cpu_alarm_high]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:26Z [example.cpu_alarm_low]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:27Z [example.cpu_alarm_low]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:27Z [example.cpu_alarm_high]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:27Z [example]: CREATE_COMPLETE  Stack CREATE completed successfully
+	2024-05-19 16:40:25Z [example.scaleout_policy]: SIGNAL_COMPLETE  alarm state changed from insufficient data to alarm (Transition to alarm due to 2 samples outside threshold, most recent: 2840000000.0)
+	2024-05-19 16:55:25Z [example.scaleout_policy]: SIGNAL_COMPLETE  alarm state changed from ok to alarm (Transition to alarm due to 2 samples outside threshold, most recent: 29940000000.0)
+
 
 	
 	pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack resource show example scaleout_policy -f json
@@ -102,21 +104,34 @@ AUTOESCALADO
 
 COMANDOS ÚTILES AUTOESCALADO
 
-pabloreal@giros21:~/vnx-kolla-openstack$ openstack alarm-history show 49a9bf74-46e5-4c42-b32a-0ec0494997a6 -f json
+pabloreal@giros21:~/vnx-kolla-openstack$ openstack alarm-history show 29322be6-95f2-485b-a966-3cf8038e4bbe -f json
 [
   {
-    "timestamp": "2024-05-19T12:30:14.612670",
+    "timestamp": "2024-05-19T16:55:14.315644",
     "type": "state transition",
-    "detail": "{\"state\": \"ok\", \"transition_reason\": \"Transition to ok due to 1 samples inside threshold, most recent: 400000000.0\"}",
-    "event_id": "94491272-7eae-4edd-abed-ff06d6e6b1e3"
+    "detail": "{\"state\": \"alarm\", \"transition_reason\": \"Transition to alarm due to 2 samples outside threshold, most recent: 29940000000.0\"}",
+    "event_id": "28acd7a9-5023-4310-b6e5-535c6941544b"
   },
   {
-    "timestamp": "2024-05-19T12:26:29.072564",
+    "timestamp": "2024-05-19T16:45:14.278369",
+    "type": "state transition",
+    "detail": "{\"state\": \"ok\", \"transition_reason\": \"Transition to ok due to 2 samples inside threshold, most recent: 570000000.0\"}",
+    "event_id": "4dedc497-97f1-49a6-b50c-b629ea5e0761"
+  },
+  {
+    "timestamp": "2024-05-19T16:40:14.289810",
+    "type": "state transition",
+    "detail": "{\"state\": \"alarm\", \"transition_reason\": \"Transition to alarm due to 2 samples outside threshold, most recent: 2840000000.0\"}",
+    "event_id": "3cdeee6a-fadf-4d1d-a8a9-0d274ecf71ae"
+  },
+  {
+    "timestamp": "2024-05-19T16:35:27.026060",
     "type": "creation",
-    "detail": "{\"alarm_id\": \"49a9bf74-46e5-4c42-b32a-0ec0494997a6\", \"type\": \"gnocchi_aggregation_by_resources_threshold\", \"enabled\": true, \"name\": \"example-cpu_alarm_high-gubvsoxstg7n\", \"description\": \"Scale up if CPU > 80%\", \"timestamp\": \"2024-05-19T12:26:29.072564\", \"user_id\": \"d37a921353034a3189c08f7936889875\", \"project_id\": \"e8f995fa647b460f97bfd13ec9f338b7\", \"state\": \"insufficient data\", \"state_timestamp\": \"2024-05-19T12:26:29.072564\", \"state_reason\": \"Not evaluated yet\", \"ok_actions\": [], \"alarm_actions\": [\"trust+http://5d6f7555a29e471b9dc83ba2118529a0:delete@10.0.0.250:8000/v1/signal/arn%3Aopenstack%3Aheat%3A%3Ae8f995fa647b460f97bfd13ec9f338b7%3Astacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997/resources/scaleout_policy?SignatureMethod=HmacSHA256&SignatureVersion=2&AWSAccessKeyId=5d0af9932fc745fba4d1c96e70a80f35&Signature=dZ6iAgKQh3%2FD64j2TM6AsPMihv9L%2FtCT%2F2Bi%2F%2Ff%2BXog%3D\"], \"insufficient_data_actions\": [], \"repeat_actions\": true, \"time_constraints\": [], \"severity\": \"low\", \"rule\": {\"granularity\": 60, \"comparison_operator\": \"gt\", \"threshold\": 800000000.0, \"aggregation_method\": \"rate:mean\", \"evaluation_periods\": 2, \"metric\": \"cpu\", \"query\": \"{\\\"=\\\": {\\\"server_group\\\": \\\"6da493a9-b0bb-43bc-bb6a-00fd88d1b997\\\"}}\", \"resource_type\": \"instance\"}}",
-    "event_id": "066812f8-5c3e-4159-ab8b-b4e2e6d56420"
+    "detail": "{\"alarm_id\": \"29322be6-95f2-485b-a966-3cf8038e4bbe\", \"type\": \"gnocchi_aggregation_by_resources_threshold\", \"enabled\": true, \"name\": \"example-cpu_alarm_high-6dya7mivsueg\", \"description\": \"Scale up if CPU > 80%\", \"timestamp\": \"2024-05-19T16:35:27.026060\", \"user_id\": \"d37a921353034a3189c08f7936889875\", \"project_id\": \"e8f995fa647b460f97bfd13ec9f338b7\", \"state\": \"insufficient data\", \"state_timestamp\": \"2024-05-19T16:35:27.026060\", \"state_reason\": \"Not evaluated yet\", \"ok_actions\": [], \"alarm_actions\": [\"trust+http://63bb34a480b942dda8e3ca22388b6b55:delete@10.0.0.250:8004/v1/e8f995fa647b460f97bfd13ec9f338b7/stacks/example/9bfae6bf-9159-478c-a83f-d18619a30a40/resources/scaleout_policy/signal\"], \"insufficient_data_actions\": [], \"repeat_actions\": true, \"time_constraints\": [], \"severity\": \"low\", \"rule\": {\"granularity\": 60, \"comparison_operator\": \"gt\", \"threshold\": 800000000.0, \"aggregation_method\": \"rate:mean\", \"evaluation_periods\": 2, \"metric\": \"cpu\", \"query\": \"{\\\"=\\\": {\\\"server_group\\\": \\\"9bfae6bf-9159-478c-a83f-d18619a30a40\\\"}}\", \"resource_type\": \"instance\"}}",
+    "event_id": "900e16ee-9279-4de9-8f48-34d378f04273"
   }
 ]
+
 
 pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack show example -f json | jq '.parameters'
 {

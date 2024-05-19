@@ -54,6 +54,7 @@ resources:
   cpu_alarm_low:
     type: OS::Aodh::GnocchiAggregationByResourcesAlarm
     properties:
+      description: Scale down if CPU < 20%
       metric: cpu
       aggregation_method: rate:mean
       granularity: 60
