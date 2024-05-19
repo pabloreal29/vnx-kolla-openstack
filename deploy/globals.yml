@@ -325,7 +325,7 @@ neutron_bridge_name: "br-vlan,br-ex"
 #enable_rabbitmq: "{{ 'yes' if om_rpc_transport == 'rabbit' or om_notify_transport == 'rabbit' else 'no' }}"
 
 # OpenStack services can be enabled or disabled with these options
-#enable_aodh: "no"
+enable_aodh: "yes"
 #enable_barbican: "no"
 #enable_blazar: "no"
 enable_ceilometer: "yes"

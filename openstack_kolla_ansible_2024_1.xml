@@ -42,7 +42,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         <console id="0" display="no"/>
         <console id="1" display="yes"/>
     </vm_defaults>
-    <cmd-seq seq="config-admin">config-admin1,config-admin2</cmd-seq>
+    <cmd-seq seq="config-admin">config-admin1,config-admin2,setup-nfs</cmd-seq>
   </global>
 
   <net name="MgmtNet" mode="openvswitch" mtu="1450"/>
@@ -68,7 +68,11 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <filetree seq="on_boot" root="/root/.ssh/">conf/ssh/id_rsa</filetree>
     <filetree seq="on_boot" root="/tmp/">conf/admin/hosts</filetree>
     <filetree seq="on_boot" root="/root/">conf/admin/deploy-ostack</filetree>
-    <filetree seq="on_boot" root="/tmp/">/home/pabloreal/openstack-images/amphora-x64-haproxy.qcow2</filetree>
+
+    <!-- Añadido por Pablo. Archivos necesarios para configurar Ceilometer -->
+    <filetree seq="on_boot" root="/tmp/">conf/admin/pipeline.yaml</filetree>
+    <filetree seq="on_boot" root="/tmp/">conf/admin/polling.yaml</filetree>
+    <filetree seq="on_boot" root="/tmp/">conf/admin/event_definitions.yaml.j2</filetree>
 
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
@@ -96,7 +100,8 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 	python3 -m venv /root/kolla
         source /root/kolla/bin/activate
         pip install -U pip
-        pip install ansible 'ansible>=8,&lt;10'
+        <!-- Modificado por Pablo. Versiones correspondientes a OpenStack v2024.1 -->
+        pip install ansible 'ansible>=8,&lt;10' 
         pip install git+https://opendev.org/openstack/kolla-ansible@stable/2024.1
         sudo mkdir -p /etc/kolla
         sudo chown $USER:$USER /etc/kolla
@@ -116,7 +121,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
         <!-- Añadido Por Pablo. Habilitar Octavia-->
         pip install python-octaviaclient
-        mv /tmp/amphora-x64-haproxy.qcow2 /etc/kolla/amphora-x64-haproxy.qcow2
 
         sed -i 's/#octavia_network_interface:.*/octavia_network_interface: "eth3.1005"/' /etc/kolla/globals.yml
         sed -i 's/#enable_octavia:.*/enable_octavia: "yes"/' /etc/kolla/globals.yml
@@ -142,7 +146,30 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i -e 's/network_vlan_ranges =.*/network_vlan_ranges = physnet1/' /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/ml2_conf.ini.j2
         echo 'dhcp-option-force=26,1400' >> /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/dnsmasq.conf.j2
 
-        <!-- Añadido por Pablo. Otras utlidades-->
+        <!-- Añadido por Pablo. Configuración de Aodh y Ceilometer -->
+        sed -i 's/#enable_aodh:.*/enable_aodh: "yes"/' /etc/kolla/globals.yml
+        pip install aodhclient
+        pip install gnocchiclient
+        rm -rf /root/kolla/share/kolla-ansible/ansible/roles/ceilometer/templates/event_definitions.yaml.j2
+        mv /tmp/event_definitions.yaml.j2 /root/kolla/share/kolla-ansible/ansible/roles/ceilometer/templates/event_definitions.yaml.j2
+
+        mkdir -p /etc/kolla/config/ceilometer
+        mv /tmp/pipeline.yaml /etc/kolla/config/ceilometer/pipeline.yaml
+        mv /tmp/polling.yaml /etc/kolla/config/ceilometer/polling.yaml
+
+        <!-- Añadido por Pablo. Habilitar Cinder-->
+        sed -i 's/#enable_cinder:.*/enable_cinder: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_cinder_backup:.*/enable_cinder_backup: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_cinder_backend_nfs:.*/enable_cinder_backend_nfs: "yes"/' /etc/kolla/globals.yml
+
+        sed -i 's/#cinder_backup_driver:.*/cinder_backup_driver: "nfs"/' /etc/kolla/globals.yml
+        sed -i 's/^#*\(cinder_backup_share:\).*/\1 "controller:\/kolla_nfs"/' /etc/kolla/globals.yml
+        sed -i 's/#cinder_backup_mount_options_nfs:.*/cinder_backup_mount_options_nfs: ""/' /etc/kolla/globals.yml
+
+        echo "controller:/kolla_nfs" >> /etc/kolla/config/nfs_shares
+        chmod 777 /etc/kolla/config/nfs_shares
+
+        <!-- Añadido por Pablo. Otras utilidades-->
         apt-get install nano
         
     </exec>
@@ -166,7 +193,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         source /root/kolla/bin/activate
         . /etc/kolla/octavia-openrc.sh
 
-        openstack image create amphora-x64-haproxy.qcow2 --container-format bare --disk-format qcow2 --private --tag amphora --file /etc/kolla/amphora-x64-haproxy.qcow2 --property hw_architecture='x86_64' --property hw_rng_model=virtio
+        wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/amphora-x64-haproxy.qcow2
+        openstack image create amphora-x64-haproxy.qcow2 --container-format bare --disk-format qcow2 --private --tag amphora --file /tmp/images/amphora-x64-haproxy.qcow2 --property hw_architecture='x86_64' --property hw_rng_model=virtio
+        rm /tmp/images/amphora-x64-haproxy.qcow2
         
     </exec>
 
@@ -176,10 +205,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         source /etc/kolla/admin-openrc.sh
 
         # Create flavors if not created
-        openstack flavor show m1.nano >/dev/null 2>&amp;1    || openstack flavor create --id 0 --vcpus 1 --ram 64 --disk 1 m1.nano
-        openstack flavor show m1.tiny >/dev/null 2>&amp;1    || openstack flavor create --id 1 --vcpus 1 --ram 512 --disk 1 m1.tiny
-        openstack flavor show m1.smaller >/dev/null 2>&amp;1 || openstack flavor create --id 6 --vcpus 1 --ram 512 --disk 3 m1.smaller
-        #openstack flavor show m1.octavia >/dev/null 2>&amp;1 || openstack flavor create --id 100 --vcpus 1 --ram 1024 --disk 5 m1.octavia --private --project service
+        openstack flavor show m1.nano >/dev/null 2>&amp;1    || openstack flavor create --vcpus 1 --ram 64 --disk 1 m1.nano
+        openstack flavor show m1.tiny >/dev/null 2>&amp;1    || openstack flavor create --vcpus 1 --ram 512 --disk 1 m1.tiny
+        openstack flavor show m1.smaller >/dev/null 2>&amp;1 || openstack flavor create --vcpus 1 --ram 512 --disk 3 m1.smaller
 
         # Cirros image
         wget -P /tmp/images http://vnx.dit.upm.es/vnx/filesystems/ostack-images/cirros-0.3.4-x86_64-disk-vnx.qcow2
@@ -311,7 +339,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="controller" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>6G</mem> 
+    <mem>8G</mem> 
     <!--console id="0" display="yes"/-->
 
     <if id="1" net="MgmtNet">
@@ -351,6 +379,14 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         ip addr add 10.10.0.0/24 dev eth3.1005
     </exec>
 
+    <exec seq="setup-nfs" type="verbatim">
+        apt install nfs-kernel-server -y
+        echo "/kolla_nfs 10.0.0.1/24(rw,sync,no_root_squash)" >> /etc/exports
+        chmod 777 /etc/exports
+        mkdir /kolla_nfs
+        systemctl restart nfs-kernel-server
+    </exec>
+
   </vm>
 
   <!--
@@ -360,7 +396,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="network" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>3G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.21/24</ipv4>
     </if>
@@ -408,7 +444,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
     <vm name="compute1" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>3G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.31/24</ipv4>
     </if>
@@ -457,7 +493,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="compute2" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>3G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.32/24</ipv4>
     </if>
@@ -506,7 +542,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="compute3" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>3G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.33/24</ipv4>
     </if>

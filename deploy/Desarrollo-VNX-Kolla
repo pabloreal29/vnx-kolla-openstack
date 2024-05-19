@@ -20,8 +20,123 @@ OPENSTACK 2024.1
 		- Hay que crear una nueva imagen de amphora para OpenStack 2024.1. Hecho, nueva imagen en: /home/pabloreal/prueba-octavia/octavia/diskimage-create/amphora-x64-haproxy.qcow2
 	- Todo solucionado!
 
-
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+AUTOESCALADO
+	- He añadido los archivos pipeline.yaml y polling.yaml para actualizar la configuración de Ceilometer.
+	
+	- SITUACIÓN ACTUAL: Si hago stress -c $(nproc), la alarma salta pero no se genera una nueva instancia.
+	- Sin embargo, se me ha generado una nueva instancia haciendo una petición POST a la URL de scaleout_policy. REVISAR POSIBLES COMANDOS:
+		
+	pabloreal@giros21:~/vnx-kolla-openstack$ openstack project list
+	+----------------------------------+------------------------------------------------------------------+
+	| ID                               | Name                                                             |
+	+----------------------------------+------------------------------------------------------------------+
+	| d13635f22cbf4664b2f949948fe9951e | e8f995fa647b460f97bfd13ec9f338b7-6da493a9-b0bb-43bc-bb6a-00fd88d |
+	| e8f995fa647b460f97bfd13ec9f338b7 | admin                                                            |
+	| fd813f37e59549a095a53e0d547d7ad3 | service                                                          |
+	+----------------------------------+------------------------------------------------------------------+
+	
+	pabloreal@giros21:~/vnx-kolla-openstack$ openstack endpoint list
+	+----------------------------------+-----------+--------------+----------------+---------+-----------+-----------------------------------------+
+	| ID                               | Region    | Service Name | Service Type   | Enabled | Interface | URL                                     |
+	+----------------------------------+-----------+--------------+----------------+---------+-----------+-----------------------------------------+
+	| 742b4f9f22734ac684dda7bb2245a038 | RegionOne | heat         | orchestration  | True    | public    | http://10.0.0.250:8004/v1/%(tenant_id)s |
+	+----------------------------------+-----------+--------------+----------------+---------+-----------+-----------------------------------------+
+	
+	pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack event list example
+	2024-05-19 12:25:57Z [example]: CREATE_IN_PROGRESS  Stack CREATE started
+	2024-05-19 12:25:58Z [example.instance_group]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 12:26:27Z [example.instance_group]: CREATE_COMPLETE  state changed
+	2024-05-19 12:26:27Z [example.scaleout_policy]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 12:26:27Z [example.scalein_policy]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 12:26:28Z [example.scaleout_policy]: CREATE_COMPLETE  state changed
+	2024-05-19 12:26:28Z [example.scalein_policy]: CREATE_COMPLETE  state changed
+	2024-05-19 12:26:28Z [example.cpu_alarm_low]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 12:26:28Z [example.cpu_alarm_high]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 12:26:30Z [example.cpu_alarm_high]: CREATE_COMPLETE  state changed
+	2024-05-19 12:26:30Z [example.cpu_alarm_low]: CREATE_COMPLETE  state changed
+	2024-05-19 12:26:30Z [example]: CREATE_COMPLETE  Stack CREATE completed successfully
+	2024-05-19 12:35:48Z [example.scaleout_policy]: SIGNAL_COMPLETE  No signal details provided
+
+	
+	pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack resource show example scaleout_policy -f json
+	{
+	  "attributes": {
+	    "alarm_url": "http://10.0.0.250:8000/v1/signal/arn%3Aopenstack%3Aheat%3A%3Ae8f995fa647b460f97bfd13ec9f338b7%3Astacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997/resources/scaleout_policy?SignatureMethod=HmacSHA256&SignatureVersion=2&AWSAccessKeyId=5d0af9932fc745fba4d1c96e70a80f35&Signature=dZ6iAgKQh3%2FD64j2TM6AsPMihv9L%2FtCT%2F2Bi%2F%2Ff%2BXog%3D",
+	    "signal_url": "http://10.0.0.250:8004/v1/e8f995fa647b460f97bfd13ec9f338b7/stacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997/resources/scaleout_policy/signal"
+	  },
+	  "creation_time": "2024-05-19T12:25:57Z",
+	  "description": "",
+	  "links": [
+	    {
+	      "href": "http://10.0.0.250:8004/v1/e8f995fa647b460f97bfd13ec9f338b7/stacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997/resources/scaleout_policy",
+	      "rel": "self"
+	    },
+	    {
+	      "href": "http://10.0.0.250:8004/v1/e8f995fa647b460f97bfd13ec9f338b7/stacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997",
+	      "rel": "stack"
+	    }
+	  ],
+	  "logical_resource_id": "scaleout_policy",
+	  "physical_resource_id": "7c79b589865647f39cc1c44da3e531b6",
+	  "required_by": [
+	    "cpu_alarm_high"
+	  ],
+	  "resource_name": "scaleout_policy",
+	  "resource_status": "CREATE_COMPLETE",
+	  "resource_status_reason": "state changed",
+	  "resource_type": "OS::Heat::ScalingPolicy",
+	  "updated_time": "2024-05-19T12:25:57Z"
+	}
+
+
+	- FORZAR AUTOESCALADO HACIA ARRIBA. PARECE QUE LA CORRECTA. Utiliza en la URL, como "OS::project_id", el ID del proyecto admin. IMPORTANTE, la URL es "signal_url":
+		TOKEN=$(openstack token issue -f value -c id)		
+		curl -X POST http://10.0.0.250:8004/v1/<OS::project_id>/stacks/example/<OS::stack_id>/resources/scaleout_policy/signal -H "X-Auth-Token: $TOKEN"
+	- Igual hacia abajo:
+		curl -X POST http://10.0.0.250:8004/v1/<OS::project_id>/stacks/example/<OS::stack_id>/resources/scalein_policy/signal -H "X-Auth-Token: $TOKEN"	
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+COMANDOS ÚTILES AUTOESCALADO
+
+pabloreal@giros21:~/vnx-kolla-openstack$ openstack alarm-history show 49a9bf74-46e5-4c42-b32a-0ec0494997a6 -f json
+[
+  {
+    "timestamp": "2024-05-19T12:30:14.612670",
+    "type": "state transition",
+    "detail": "{\"state\": \"ok\", \"transition_reason\": \"Transition to ok due to 1 samples inside threshold, most recent: 400000000.0\"}",
+    "event_id": "94491272-7eae-4edd-abed-ff06d6e6b1e3"
+  },
+  {
+    "timestamp": "2024-05-19T12:26:29.072564",
+    "type": "creation",
+    "detail": "{\"alarm_id\": \"49a9bf74-46e5-4c42-b32a-0ec0494997a6\", \"type\": \"gnocchi_aggregation_by_resources_threshold\", \"enabled\": true, \"name\": \"example-cpu_alarm_high-gubvsoxstg7n\", \"description\": \"Scale up if CPU > 80%\", \"timestamp\": \"2024-05-19T12:26:29.072564\", \"user_id\": \"d37a921353034a3189c08f7936889875\", \"project_id\": \"e8f995fa647b460f97bfd13ec9f338b7\", \"state\": \"insufficient data\", \"state_timestamp\": \"2024-05-19T12:26:29.072564\", \"state_reason\": \"Not evaluated yet\", \"ok_actions\": [], \"alarm_actions\": [\"trust+http://5d6f7555a29e471b9dc83ba2118529a0:delete@10.0.0.250:8000/v1/signal/arn%3Aopenstack%3Aheat%3A%3Ae8f995fa647b460f97bfd13ec9f338b7%3Astacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997/resources/scaleout_policy?SignatureMethod=HmacSHA256&SignatureVersion=2&AWSAccessKeyId=5d0af9932fc745fba4d1c96e70a80f35&Signature=dZ6iAgKQh3%2FD64j2TM6AsPMihv9L%2FtCT%2F2Bi%2F%2Ff%2BXog%3D\"], \"insufficient_data_actions\": [], \"repeat_actions\": true, \"time_constraints\": [], \"severity\": \"low\", \"rule\": {\"granularity\": 60, \"comparison_operator\": \"gt\", \"threshold\": 800000000.0, \"aggregation_method\": \"rate:mean\", \"evaluation_periods\": 2, \"metric\": \"cpu\", \"query\": \"{\\\"=\\\": {\\\"server_group\\\": \\\"6da493a9-b0bb-43bc-bb6a-00fd88d1b997\\\"}}\", \"resource_type\": \"instance\"}}",
+    "event_id": "066812f8-5c3e-4159-ab8b-b4e2e6d56420"
+  }
+]
+
+pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack show example -f json | jq '.parameters'
+{
+  "OS::stack_id": "6da493a9-b0bb-43bc-bb6a-00fd88d1b997",
+  "OS::project_id": "e8f995fa647b460f97bfd13ec9f338b7",
+  "OS::stack_name": "example"
+}
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+FORZAR USO CPU
+
+Comandos a ejecutar:
+	apt-get update
+	apt-get install stress
+	stress -c $(nproc)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 
 ANSIBLE VERSIONS: https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html
 +----------------------------------+-----------+----------------+

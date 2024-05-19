@@ -1,0 +1,6 @@
+sources:
+    - name: some_pollsters
+      interval: 60
+      meters:
+        - cpu
+        # - memory.usage
