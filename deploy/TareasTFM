@@ -3,6 +3,6 @@ Y para el escenario de prácticas de OpenStack:
 - Configuración de los mecanismos de autoescalado y generación de ejemplos de uso
 - Instalación y pruebas de otros módulos de OpenStack, por ejemplo:
   + Magnum, para poder desplegar clústeres de Kubernetes sobre OpenStack.
-  + Barbican, para almacenar secretos (cercificados, claves, etc)
+  + Barbican, para almacenar secretos (certificados, claves, etc.)
   + Zun, para desplegar contenedores
   + Cinder para almacenamiento

@@ -1,0 +1,278 @@
+heat_template_version: wallaby
+
+description: Creación del escenario del Trabajo Final en OpenStack
+
+resources:
+
+## AUTO_SCALING_GROUP DE SERVIDORES ----------------------------------------
+
+  instance_group:
+    type: OS::Heat::AutoScalingGroup
+    depends_on:
+      - net1
+      - net2
+      - subnet1
+      - subnet2
+      - firewall_router
+      - fw_router_inface
+      - load_balancer
+      - lb_listener
+      - lb_pool
+      - security_group
+    properties:
+      cooldown: 10
+      desired_capacity: 3
+      min_size: 3
+      max_size: 5
+      resource:
+        type: OS::Nova::Server::MyServer
+        properties:
+          metadata: {"metering.server_group": {get_param: "OS::stack_id"}}
+
+  scaleout_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: instance_group}
+      cooldown: 10
+      scaling_adjustment: 1
+
+  scalein_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: {get_resource: instance_group}
+      cooldown: 10
+      scaling_adjustment: -1
+
+  cpu_alarm_high:
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
+    properties:
+      description: Scale up if CPU > 80%
+      metric: cpu
+      aggregation_method: rate:mean
+      granularity: 60 # Con otros valores tarda todavia mas en configurarse la alarma
+      evaluation_periods: 2
+      threshold: 800000000.0 # Uso de CPU del 80% - Threshold = 10⁹ x Granularity x Percentage
+      resource_type: instance
+      comparison_operator: gt
+      alarm_actions:
+        - str_replace:
+            template: trust+url
+            params:
+              url: {get_attr: [scaleout_policy, signal_url]}
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "stack_id"}}'
+          params:
+            stack_id: {get_param: "OS::stack_id"}
+
+  cpu_alarm_low:
+    type: OS::Aodh::GnocchiAggregationByResourcesAlarm
+    properties:
+      description: Scale down if CPU < 20%
+      metric: cpu
+      aggregation_method: rate:mean
+      granularity: 60
+      evaluation_periods: 2
+      threshold: 200000000.0 # Uso de CPU del 20% 
+      resource_type: instance
+      comparison_operator: lt
+      alarm_actions:
+        - str_replace:
+            template: trust+url
+            params:
+              url: {get_attr: [scalein_policy, signal_url]}
+      query:
+        str_replace:
+          template: '{"=": {"server_group": "stack_id"}}'
+          params:
+            stack_id: {get_param: "OS::stack_id"}
+  
+## REDES Y SUBREDES ---------------------------------------
+
+  net1:
+    type: OS::Neutron::Net
+    properties:
+      name: Net1
+    
+  net2:
+    type: OS::Neutron::Net
+    properties:
+      name: Net2
+  
+  subnet1:
+    type: OS::Neutron::Subnet
+    properties:
+      name: subnet1
+      network_id: {get_resource: net1}
+      cidr: 10.1.1.0/24
+      dns_nameservers: [8.8.8.8]
+      gateway_ip: 10.1.1.1
+      allocation_pools:
+        - start: 10.1.1.2
+          end: 10.1.1.100
+  
+  subnet2:
+    type: OS::Neutron::Subnet
+    properties:
+      name: subnet2
+      network_id: {get_resource: net2}
+      cidr: 10.1.2.0/24
+      allocation_pools:
+        - start: 10.1.2.2
+          end: 10.1.2.100
+
+  ## ROUTER FIREWALL -------------------------------------------------------
+  
+  firewall_router:
+    type: OS::Neutron::Router
+    properties:
+      name: firewall_router
+      external_gateway_info:
+        network: ExtNet
+  
+  fw_router_inface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      subnet: {get_resource: subnet1}
+      router: {get_resource: firewall_router}
+      
+
+  ## BALANCEADOR ----------------------------------------------------
+  
+  load_balancer:
+    type: OS::Octavia::LoadBalancer
+    properties:
+      name: load_balancer
+      vip_subnet: {get_resource: subnet1}
+
+  lb_listener:
+    type: OS::Octavia::Listener
+    properties:
+      name: lb_listener
+      protocol: HTTP                  
+      protocol_port: 80               
+      loadbalancer: {get_resource: load_balancer}
+
+  lb_pool:
+    type: OS::Octavia::Pool
+    properties:
+      name: lb_pool
+      lb_algorithm: ROUND_ROBIN
+      protocol: HTTP
+      listener: {get_resource: lb_listener}
+      loadbalancer: {get_resource: load_balancer}
+
+
+  ## GRUPO DE SEGURIDAD -----------------------------------------------------------------
+
+  security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: open
+      description: Nuestro grupo de seguridad
+      rules:
+        - {remote_ip_prefix: 0.0.0.0/0, direction: ingress}
+        - {remote_ip_prefix: 0.0.0.0/0, direction: egress}
+
+
+  ## PUERTOS -----------------------------------------------------------------
+
+  portBBDD_net2:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: net2}
+      name: portBBDD_net2
+      security_groups: 
+        - {get_resource: security_group}
+      fixed_ips: 
+        - ip_address: 10.1.2.83
+
+  port_admin1:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: net1}
+      name: port_admin1
+      security_groups: 
+        - {get_resource: security_group}
+      fixed_ips:
+      - subnet: {get_resource: subnet1} 
+  
+  port_admin2:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: net2}
+      name: port_admin2
+      security_groups: 
+        - {get_resource: security_group}
+      fixed_ips: 
+        - subnet: {get_resource: subnet2}
+    
+
+  ## IPs FLOTANTES ------------------------------------------------
+
+  floating_ipLB:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: ExtNet
+      port_id: {get_attr: [load_balancer, vip_port_id]}
+
+  floating_ipAdmin:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: ExtNet
+      port_id: {get_resource: port_admin1}
+
+
+  ## ADMIN ------------------------------------------------
+
+  administrador:
+    type: OS::Nova::Server
+    properties:
+      name: administrador
+      image: focal-admin-vnx
+      flavor: m1.smaller
+      networks:
+      - network: {get_resource: net1}
+        port: {get_resource: port_admin1}
+        floating_ip: {get_resource: floating_ipAdmin}
+      - network: {get_resource: net2}
+        port: {get_resource: port_admin2}
+      key_name: administrador
+
+    
+  ## BASE DE DATOS ----------------------------------------
+
+  bbdd:
+    type: OS::Nova::Server
+    properties:
+      name: bbdd
+      image: focal-bbdd-vnx
+      flavor: m1.large
+      networks:
+      - network: {get_resource: net2}
+        port: {get_resource: portBBDD_net2}
+      key_name: bbdd
+      user_data_format: RAW
+      user_data: |
+        #!/bin/bash
+        systemctl start mongod
+
+
+  ## OUTPUTS ------------------------------------------------
+
+outputs:
+  scaleout_policy_signal_url:
+    description: "La URL a la que mandar la senal para activar el autoescalado hacia arriba"
+    value: {get_attr: [scaleout_policy, signal_url]}
+    
+  scalein_policy_signal_url:
+    description: "La URL a la que mandar la senal para activar el autoescalado hacia arriba"
+    value: {get_attr: [scalein_policy, signal_url]}
+
+  current_size:
+    description: "El numero actual de servidores en el AutoScalingGroup"
+    value: {get_attr: [instance_group, current_size]}
+
+        

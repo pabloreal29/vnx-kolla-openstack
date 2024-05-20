@@ -1,2 +1,2 @@
 resource_registry:
-    "OS::Nova::Server::Cirros": cirros.yaml
+    "OS::Nova::Server::MyServer": myServers.yaml

@@ -9,7 +9,7 @@ resources:
       min_size: 1
       max_size: 3
       resource:
-        type: OS::Nova::Server::Cirros
+        type: OS::Nova::Server::MyServer
         properties:
           metadata: {"metering.server_group": {get_param: "OS::stack_id"}}
 
@@ -32,12 +32,12 @@ resources:
   cpu_alarm_high:
     type: OS::Aodh::GnocchiAggregationByResourcesAlarm
     properties:
-      description: Scale up if CPU > 80%
-      metric: cpu
-      aggregation_method: rate:mean
+      description: Scale up if CPU > 70%
+      metric: cpu_util
+      aggregation_method: sum
       granularity: 60
-      evaluation_periods: 2
-      threshold: 800000000.0 # Uso de CPU del 80% 
+      evaluation_periods: 1
+      threshold: 80.0 # Uso de CPU del 70% - Threshold = 10⁹ x Granularity x Percentage
       resource_type: instance
       comparison_operator: gt
       alarm_actions:
@@ -75,9 +75,14 @@ resources:
 
 outputs:
   scaleout_policy_signal_url:
+    description: "La URL a la que mandar la senal para activar el autoescalado hacia arriba"
     value: {get_attr: [scaleout_policy, signal_url]}
     
-
   scalein_policy_signal_url:
+    description: "La URL a la que mandar la senal para activar el autoescalado hacia arriba"
     value: {get_attr: [scalein_policy, signal_url]}
+
+  current_size:
+    description: "El numero actual de servidores en el AutoScalingGroup"
+    value: {get_attr: [instance_group, current_size]}
 

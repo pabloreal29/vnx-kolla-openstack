@@ -50,7 +50,7 @@ openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 source deploy/preconf.sh
 
 #Crear el stack con todos los elementos del escenario
-openstack stack create -t deploy/autoScalingGroup.yaml -e deploy/environment.yaml example
+openstack stack create -t deploy/escenarioTF_ASG.yaml -e deploy/environment.yaml stackTF_ASG
 
 # # Borrar el stack
 # openstack stack delete -y stackTF
