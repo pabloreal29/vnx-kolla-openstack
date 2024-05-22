@@ -8,6 +8,12 @@ TAREAS ACTUALES:
 	- Actualizar a Openstack 2024.1 - OK!!!
 	- Configurar autoescalado (mirar Ceilometer).
 	
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ERROR GRAVE OPENSTACK
+
+Nodo Controlador: failed: [10.0.0.21]: File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 532, in send\\n    conn = self._get_connection(request, verify, proxies=proxies, cert=cert)\\n  File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 400, in _get_connection\\n    conn = self.poolmanager.connection_from_host(\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 304, in connection_from_host\\n    return self.connection_from_context(request_context)\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 326, in connection_from_context\\n    raise URLSchemeUnknown(scheme)\\nurllib3.exceptions.URLSchemeUnknown: Not supported URL scheme http+docker
+	
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------	
 OPENSTACK 2024.1

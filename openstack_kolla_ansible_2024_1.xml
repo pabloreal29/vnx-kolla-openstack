@@ -100,7 +100,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 	python3 -m venv /root/kolla
         source /root/kolla/bin/activate
         pip install -U pip
-        <!-- Modificado por Pablo. Versiones correspondientes a OpenStack v2024.1 -->
+        <!-- Modificado por Pablo. Versiones de Ansible correspondientes a OpenStack v2024.1 -->
         pip install ansible 'ansible>=8,&lt;10' 
         pip install git+https://opendev.org/openstack/kolla-ansible@stable/2024.1
         sudo mkdir -p /etc/kolla
@@ -339,7 +339,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="controller" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>8G</mem> 
+    <mem>6G</mem> 
     <!--console id="0" display="yes"/-->
 
     <if id="1" net="MgmtNet">
@@ -396,7 +396,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="network" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>4G</mem>
+    <mem>2G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.21/24</ipv4>
     </if>
