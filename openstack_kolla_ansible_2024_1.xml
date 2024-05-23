@@ -177,6 +177,8 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
         <!-- Añadido Por Pablo. Habilitar Swift-->
         sed -i 's/#enable_swift:.*/enable_swift: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#swift_devices_match_mode:.*/swift_devices_match_mode: "prefix"/' /etc/kolla/globals.yml
+        sed -i 's/#swift_devices_name:.*/swift_devices_name: "swd"/' /etc/kolla/globals.yml
 
         <!-- Añadido por Pablo. Otras utilidades-->
         apt-get install nano
