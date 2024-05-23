@@ -5,7 +5,7 @@ ssh controller << 'EOF'
 STORAGE_NODES=(10.0.0.31 10.0.0.32 10.0.0.33)
 KOLLA_SWIFT_BASE_IMAGE="kolla/swift-object-expirer:2024.1-ubuntu-jammy"
 mkdir -p /etc/kolla/config/swift
-chmod 777 /etc/kolla/config/swift
+chmod 755 /etc/kolla/config/swift
 
 # Create Object Ring
 docker run \
@@ -73,6 +73,9 @@ for ring in object account container; do
     swift-ring-builder \
       /etc/kolla/config/swift/${ring}.builder rebalance;
 done
+
+# Asignar permisos a los archivos creados
+chmod 755 account.builder account.ring.gz container.builder container.ring.gz object.builder object.ring.gz
 
 EOF
 
