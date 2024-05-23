@@ -74,6 +74,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <filetree seq="on_boot" root="/tmp/">conf/admin/polling.yaml</filetree>
     <filetree seq="on_boot" root="/tmp/">conf/admin/event_definitions.yaml.j2</filetree>
 
+    <!-- Añadido por Pablo. Archivos necesarios para configurar Swift -->
+    <filetree seq="on_boot" root="/root/">conf/admin/rings-swift</filetree>
+
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
         apt-get update
@@ -168,6 +171,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
         echo "controller:/kolla_nfs" >> /etc/kolla/config/nfs_shares
         chmod 777 /etc/kolla/config/nfs_shares
+
+        <!-- Añadido por Pablo. Habilitar Skyline-->
+        sed -i 's/#enable_skyline:.*/enable_skyline: "yes"/' /etc/kolla/globals.yml
+
+        <!-- Añadido Por Pablo. Habilitar Swift-->
+        sed -i 's/#enable_swift:.*/enable_swift: "yes"/' /etc/kolla/globals.yml
 
         <!-- Añadido por Pablo. Otras utilidades-->
         apt-get install nano
@@ -339,7 +348,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="controller" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>6G</mem> 
+    <mem>8G</mem> 
     <!--console id="0" display="yes"/-->
 
     <if id="1" net="MgmtNet">
@@ -396,7 +405,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
   -->
   <vm name="network" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
     <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
-    <mem>2G</mem>
+    <mem>4G</mem>
     <if id="1" net="MgmtNet">
       <ipv4>10.0.0.21/24</ipv4>
     </if>
@@ -475,6 +484,39 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 	resolvectl dns 2 1.1.1.1
         #apt update
 	#apt install -y openvswitch-switch
+
+        <!-- Añadido por Pablo. Crear Loopback Devices para Swift -->
+        # Crear directorio y archivos de respaldo
+        mkdir -p /srv/swift-disk
+        cd /srv/swift-disk
+
+        fallocate -l 5G swift-disk1.img
+        fallocate -l 5G swift-disk2.img
+        fallocate -l 5G swift-disk3.img
+
+        # Asignar dispositivos loopback específicos
+        losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
+        losetup /dev/loop11 /srv/swift-disk/swift-disk2.img
+        losetup /dev/loop12 /srv/swift-disk/swift-disk3.img
+
+        # Formatear y etiquetar los dispositivos loopback
+        index=0
+        for d in /dev/loop10 /dev/loop11 /dev/loop12; do
+            mkfs.xfs -f -L swd${index} ${d}
+            (( index++ ))
+        done
+
+        # Configurar /etc/fstab y montar los dispositivos
+        echo 'LABEL=swd0 /srv/node/swd0 xfs defaults 0 0' >> /etc/fstab
+        echo 'LABEL=swd1 /srv/node/swd1 xfs defaults 0 0' >> /etc/fstab
+        echo 'LABEL=swd2 /srv/node/swd2 xfs defaults 0 0' >> /etc/fstab
+
+        mkdir -p /srv/node/swd0
+        mkdir -p /srv/node/swd1
+        mkdir -p /srv/node/swd2
+
+        mount -a
+
     </exec>
 
     <!-- Copy ntp config and restart service -->
@@ -524,6 +566,39 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 	resolvectl dns 2 1.1.1.1
         #apt update
 	#apt install -y openvswitch-switch
+
+        <!-- Añadido por Pablo. Crear Loopback Devices para Swift -->
+        # Crear directorio y archivos de respaldo
+        mkdir -p /srv/swift-disk
+        cd /srv/swift-disk
+
+        fallocate -l 5G swift-disk1.img
+        fallocate -l 5G swift-disk2.img
+        fallocate -l 5G swift-disk3.img
+
+        # Asignar dispositivos loopback específicos
+        losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
+        losetup /dev/loop11 /srv/swift-disk/swift-disk2.img
+        losetup /dev/loop12 /srv/swift-disk/swift-disk3.img
+
+        # Formatear y etiquetar los dispositivos loopback
+        index=0
+        for d in /dev/loop10 /dev/loop11 /dev/loop12; do
+            mkfs.xfs -f -L swd${index} ${d}
+            (( index++ ))
+        done
+
+        # Configurar /etc/fstab y montar los dispositivos
+        echo 'LABEL=swd0 /srv/node/swd0 xfs defaults 0 0' >> /etc/fstab
+        echo 'LABEL=swd1 /srv/node/swd1 xfs defaults 0 0' >> /etc/fstab
+        echo 'LABEL=swd2 /srv/node/swd2 xfs defaults 0 0' >> /etc/fstab
+
+        mkdir -p /srv/node/swd0
+        mkdir -p /srv/node/swd1
+        mkdir -p /srv/node/swd2
+
+        mount -a
+
     </exec>
 
     <!-- Copy ntp config and restart service -->
@@ -573,6 +648,39 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 	resolvectl dns 2 1.1.1.1
         #apt update
 	#apt install -y openvswitch-switch
+
+        <!-- Añadido por Pablo. Crear Loopback Devices para Swift -->
+        # Crear directorio y archivos de respaldo
+        mkdir -p /srv/swift-disk
+        cd /srv/swift-disk
+
+        fallocate -l 5G swift-disk1.img
+        fallocate -l 5G swift-disk2.img
+        fallocate -l 5G swift-disk3.img
+
+        # Asignar dispositivos loopback específicos
+        losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
+        losetup /dev/loop11 /srv/swift-disk/swift-disk2.img
+        losetup /dev/loop12 /srv/swift-disk/swift-disk3.img
+
+        # Formatear y etiquetar los dispositivos loopback
+        index=0
+        for d in /dev/loop10 /dev/loop11 /dev/loop12; do
+            mkfs.xfs -f -L swd${index} ${d}
+            (( index++ ))
+        done
+
+        # Configurar /etc/fstab y montar los dispositivos
+        echo 'LABEL=swd0 /srv/node/swd0 xfs defaults 0 0' >> /etc/fstab
+        echo 'LABEL=swd1 /srv/node/swd1 xfs defaults 0 0' >> /etc/fstab
+        echo 'LABEL=swd2 /srv/node/swd2 xfs defaults 0 0' >> /etc/fstab
+
+        mkdir -p /srv/node/swd0
+        mkdir -p /srv/node/swd1
+        mkdir -p /srv/node/swd2
+
+        mount -a
+
     </exec>
 
     <!-- Copy ntp config and restart service -->

@@ -25,7 +25,7 @@ resources:
       min_size: 3
       max_size: 5
       resource:
-        type: OS::Nova::Server::MyServer
+        type: myServers.yaml
         properties:
           metadata: {"metering.server_group": {get_param: "OS::stack_id"}}
 

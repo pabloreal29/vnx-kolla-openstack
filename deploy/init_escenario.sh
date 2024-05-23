@@ -47,10 +47,10 @@ openstack image create focal-admin-vnx --file /home/pabloreal/openstack-images/a
 #Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
 #Nota: he reducido las vcpus y la ram respecto al trabajo de cnvr
 openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
-#source deploy/preconf.sh
 
 #Crear el stack con todos los elementos del escenario
-openstack stack create -t deploy/escenarioTF_ASG.yaml -e deploy/environment.yaml stackTF_ASG
+openstack stack create -t deploy/escenarioTF_ASG.yaml my_stack
+# openstack stack create -t deploy/escenarioTF_RSG.yaml --parameter "instance_name_prefix=my_instance" my_stack
 
 # # Borrar el stack
 # openstack stack delete -y stackTF_ASG
