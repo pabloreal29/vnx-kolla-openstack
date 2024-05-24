@@ -92,7 +92,6 @@ kolla_internal_vip_address: "10.0.0.250"
 # Valid options are [ docker, podman ]
 #kolla_container_engine: docker
 
-
 ################
 # Docker options
 ################
@@ -406,7 +405,7 @@ enable_neutron_provider_networks: "yes"
 #enable_neutron_infoblox_ipam_agent: "no"
 #enable_neutron_port_forwarding: "no"
 #enable_nova_serialconsole_proxy: "no"
-#enable_nova_ssh: "no"
+#enable_nova_ssh: "yes"
 enable_octavia: "yes"
 #enable_octavia_driver_agent: "{{ enable_octavia | bool and neutron_plugin_agent == 'ovn' }}"
 #enable_octavia_jobboard: "{{ enable_octavia | bool and 'amphora' in octavia_provider_drivers }}"
@@ -422,7 +421,7 @@ enable_octavia: "yes"
 #enable_proxysql: "no"
 enable_redis: "yes"
 enable_skyline: "yes"
-#enable_swift: "no"
+enable_swift: "yes"
 #enable_swift_s3api: "no"
 #enable_tacker: "no"
 #enable_telegraf: "no"
@@ -724,14 +723,14 @@ cinder_backup_mount_options_nfs: ""
 # is used to detect the disk which Swift will be using.
 
 # Swift support two matching modes, valid options are [ prefix, strict ]
-#swift_devices_match_mode: "strict"
+swift_devices_match_mode: "prefix"
 
 # This parameter defines matching pattern: if "strict" mode was selected,
 # for swift_devices_match_mode then swift_device_name should specify the name of
 # the special swift partition for example: "KOLLA_SWIFT_DATA", if "prefix" mode was
 # selected then swift_devices_name should specify a pattern which would match to
 # filesystems' labels prepared for swift.
-#swift_devices_name: "KOLLA_SWIFT_DATA"
+swift_devices_name: "swd"
 
 # Configure swift upgrade option, due to currently kolla support
 # two upgrade ways for swift: legacy_upgrade and rolling_upgrade
@@ -823,12 +822,12 @@ octavia_auto_configure: "yes"
 # - ephemeral (optional)
 # - swap (optional)
 # - extra_specs (optional)
-# octavia_amp_flavor:
-#   name: "amphora"
-#   is_public: no
-#   vcpus: 1
-#   ram: 1024
-#   disk: 5
+#octavia_amp_flavor:
+#  name: "amphora"
+#  is_public: no
+#  vcpus: 1
+#  ram: 1024
+#  disk: 5
 
 # Octavia security groups. lb-mgmt-sec-grp is for amphorae.
 #octavia_amp_security_groups:
@@ -886,13 +885,14 @@ octavia_amp_network:
     gateway_ip: "10.10.0.1"
     enable_dhcp: yes
 
+
 # Octavia management network subnet CIDR.
 #octavia_amp_network_cidr: 10.1.0.0/24
 
-octavia_amp_image_tag: "amphora"
+#octavia_amp_image_tag: "amphora"
 
 # Load balancer topology options are [ SINGLE, ACTIVE_STANDBY ]
-octavia_loadbalancer_topology: "SINGLE"
+#octavia_loadbalancer_topology: "SINGLE"
 
 # The following variables are ignored as along as `octavia_auto_configure` is set to `yes`.
 #octavia_amp_image_owner_id:
