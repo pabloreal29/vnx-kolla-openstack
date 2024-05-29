@@ -50,7 +50,7 @@ openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 
 #Crear el stack con todos los elementos del escenario
 openstack stack create -t deploy/escenarioTF_ASG.yaml my_stack
-# openstack stack create -t deploy/escenarioTF_RSG.yaml --parameter "instance_name_prefix=my_instance" my_stack
+openstack stack create -t deploy/escenarioTF_RSG.yaml --parameter "instance_name_prefix=my_instance" my_stack
 
 # # Borrar el stack
 # openstack stack delete -y stackTF_ASG

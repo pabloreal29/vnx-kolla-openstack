@@ -14,16 +14,44 @@ TAREAS ACTUALES:
 		https://www.server-world.info/en/note?os=Ubuntu_22.04&p=openstack_antelope5&f=4
 		
 	- Configurar Firewall (neutron-fwaas)
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+PROBLEMA ACTUAL
+
+No se activa la interfaz de Skyline
 	
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+PETICIONES CURL
 
-ERROR GRAVE OPENSTACK
+1. Obtener token:
 
-Nodo Controlador: failed: [10.0.0.21]: File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 532, in send\\n    conn = self._get_connection(request, verify, proxies=proxies, cert=cert)\\n  File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 400, in _get_connection\\n    conn = self.poolmanager.connection_from_host(\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 304, in connection_from_host\\n    return self.connection_from_context(request_context)\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 326, in connection_from_context\\n    raise URLSchemeUnknown(scheme)\\nurllib3.exceptions.URLSchemeUnknown: Not supported URL scheme http+docker
+pabloreal@giros21:~/vnx-kolla-openstack$ curl -i -X POST http://10.0.0.250:5000/v3/auth/tokens -H "Content-Type: application/json" -d '{
+    "auth": {
+        "identity": {
+            "methods": ["password"],
+            "password": {
+                "user": {
+                    "name": "admin",
+                    "domain": { "name": "Default" },
+                    "password": "JvN3pE6YP2isfeWH3gjQOB9dmTZEY99XT1gk3ykC"
+                }
+            }
+        },
+        "scope": {
+            "project": {
+                "name": "admin",
+                "domain": { "name": "Default" }
+            }
+        }
+    }
+}'
 
-- Solucionado: Han sacado una nueva versión que no da errores. Dejo por aquí la solución de David, por si vuelve a pasar.
-	for i in controller network compute1 compute2 compute3; do ssh $i pip install --force-reinstall requests==2.31.0; done
-	
+El token es lo que aparece después de x-subject-token
+
+2. Realizar la petición:
+pabloreal@giros21:~/vnx-kolla-openstack$ curl -i -X PUT http://10.0.0.250:8080/v1/AUTH_$PROJECT_ID/mycontainer -H "X-Auth-Token: $TOKEN"
+
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------	
 OPENSTACK 2024.1
@@ -203,10 +231,30 @@ Errores obtenidos:
 	- Si no: 
 		- Ejecutar: ip link set dev ens4 up. 
 		- Luego eliminar la ruta que se ha creado: ip route del default via 10.1.2.1
-4. Octavia. Problemas encomtrados:
+		
+4. Octavia. Problemas encontrados:
 	- Crear red de VLANs en el nodo controller (VlanNet). A esta red se conectan tanto el nodo de red como los de computación.
 	- Crear nueva imagen de amphora acorde con la versión 2024.1 de OpenStack y subirla al servidor de VNX.
 	- Aumentar RAM tanto del nodo controlador como de los de computación, para evitar problemas del tipo: No Host found.
+
+5. Error deploy kolla:
+Nodo Controlador: failed: [10.0.0.21]: File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 532, in send\\n    conn = self._get_connection(request, verify, proxies=proxies, cert=cert)\\n  File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 400, in _get_connection\\n    conn = self.poolmanager.connection_from_host(\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 304, in connection_from_host\\n    return self.connection_from_context(request_context)\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 326, in connection_from_context\\n    raise URLSchemeUnknown(scheme)\\nurllib3.exceptions.URLSchemeUnknown: Not supported URL scheme http+docker
+
+- Solucionado: Han sacado una nueva versión que no da errores. Dejo por aquí la solución de David, por si vuelve a pasar.
+	for i in controller network compute1 compute2 compute3; do ssh $i pip install --force-reinstall requests==2.31.0; done
+	
+6. Swift: 
+	6.1 Error Swift Puertos Rings. Solucionado, era un problema de los puertos al crear los anillos, que todos estaban en 6000:
+
+	Compute1: Mirar swift-ring-builder account.builder
+
+	kolla-swift_container_replicator-container.service - docker kolla-swift_container_replicator-container.service
+	Can't find itself 10.0.0.31 with port 6002 in ring file, not replicating
+	
+	6.2 Swift. No se puede crear un contenedor desde la interfaz de Horizon (hay un bug con el tema de las politicas que no detecta ninguna. Error: no se ha podido descargar los detalles de la 			política).
+	Posible solucion: Añadir lineas a swift.conf y a globals.yml.
+	Solucion en: https://bugs.launchpad.net/kolla-ansible/+bug/1980880
+
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 PRUEBAS CON GLANCE

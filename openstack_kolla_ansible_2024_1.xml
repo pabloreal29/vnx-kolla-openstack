@@ -176,9 +176,14 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_skyline:.*/enable_skyline: "yes"/' /etc/kolla/globals.yml
 
         <!-- Añadido Por Pablo. Habilitar Swift-->
+        pip install python-swiftclient
         sed -i 's/#enable_swift:.*/enable_swift: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#swift_devices_match_mode:.*/swift_devices_match_mode: "prefix"/' /etc/kolla/globals.yml
         sed -i 's/#swift_devices_name:.*/swift_devices_name: "swd"/' /etc/kolla/globals.yml
+        sed -i 's/#glance_backend_swift:.*/glance_backend_swift: "no"/' /etc/kolla/globals.yml
+        
+        sed -i '$ a\[storage-policy:0]\nname = Policy-0\ndefault = true' /root/kolla/share/kolla-ansible/ansible/roles/swift/templates/swift.conf.j2
+        sed -i '/#swift_enable_rolling_upgrade: "yes"/a swift_delay_auth_decision: "yes"' /etc/kolla/globals.yml
 
         <!-- Añadido por Pablo. Otras utilidades-->
         apt-get install nano
@@ -492,9 +497,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 5G swift-disk1.img
-        fallocate -l 5G swift-disk2.img
-        fallocate -l 5G swift-disk3.img
+        fallocate -l 8G swift-disk1.img
+        fallocate -l 8G swift-disk2.img
+        fallocate -l 8G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
@@ -574,9 +579,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 5G swift-disk1.img
-        fallocate -l 5G swift-disk2.img
-        fallocate -l 5G swift-disk3.img
+        fallocate -l 8G swift-disk1.img
+        fallocate -l 8G swift-disk2.img
+        fallocate -l 8G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
@@ -656,9 +661,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 5G swift-disk1.img
-        fallocate -l 5G swift-disk2.img
-        fallocate -l 5G swift-disk3.img
+        fallocate -l 8G swift-disk1.img
+        fallocate -l 8G swift-disk2.img
+        fallocate -l 8G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img

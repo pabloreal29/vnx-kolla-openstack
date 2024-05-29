@@ -26,6 +26,10 @@
 [storage]
 10.0.0.11 ansible_user=root
 
+# Añadido por Pablo. Usar los nodos de computacion como Storage Nodes de Swift
+[swift-storage]
+10.0.0.[31:33] ansible_user=root
+
 [deployment]
 localhost       ansible_connection=local
 
@@ -137,8 +141,10 @@ control
 [horizon:children]
 control
 
+# Modificado por Pablo. Usar los nodos de computacion como Storage Nodes de Swift
 [swift:children]
-control
+control 
+swift-storage
 
 [barbican:children]
 control
@@ -363,18 +369,18 @@ network
 [manila-data:children]
 manila
 
-# Swift
+# Swift. Modificado por Pablo. Usar los nodos de computacion como Storage Nodes
 [swift-proxy-server:children]
-swift
+control
 
 [swift-account-server:children]
-storage
+swift-storage
 
 [swift-container-server:children]
-storage
+swift-storage
 
 [swift-object-server:children]
-storage
+swift-storage
 
 # Barbican
 [barbican-api:children]
