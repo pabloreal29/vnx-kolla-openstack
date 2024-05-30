@@ -173,9 +173,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         echo "controller:/kolla_nfs" >> /etc/kolla/config/nfs_shares
         chmod 777 /etc/kolla/config/nfs_shares
 
-        <!-- Añadido por Pablo. Habilitar Skyline. Documentacion: https://opendev.org/openstack/skyline-apiserver/src/branch/stable/2024.1/kolla-->
-        <!-- mkdir -p /etc/ansible
-        echo -e "[defaults]\nhost_key_checking=False\npipelining=True\nforks=100" > /etc/ansible/ansible.cfg -->
+        <!-- Añadido por Pablo. Habilitar Skyline-->
         sed -i 's/#enable_skyline:.*/enable_skyline: "yes"/' /etc/kolla/globals.yml
 
         <!-- Añadido Por Pablo. Habilitar Swift-->

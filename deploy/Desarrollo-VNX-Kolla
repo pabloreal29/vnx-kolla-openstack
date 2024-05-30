@@ -5,15 +5,12 @@ COMENTARIOS DE DAVID:
 	- Hay otro chico con un TFG en el que utiliza Terraform en vez de Heat para crear todos los elementos de la red.
 
 TAREAS ACTUALES:
-	- Buscar donde se almacenan los datos de Ceilometer (es decir, donde Gnocchi almacena estos datos de telemetría).
+	- OK! Buscar donde se almacenan los datos de Ceilometer (es decir, donde Gnocchi almacena estos datos de telemetría).
 		- Ver si se puede conectar Kolla con Grafana para analizar estos datos.
 	- Terminar de configurar Cinder (almacenamiento de bloques).
-	- Configurar Swift (almacenamiento de objetos).
+	- OK! Configurar Swift (almacenamiento de objetos).
 	- Diseñar una serie de pruebas con un uso de CPU concreto (ej: 40%, 50%, 60%) para ver cuándo se escala.
-	- Mirar documentación Skyline (nueva interfaz Horizon) y ver si se puede implementar en Kolla. Hecho, está en el puerto 9999
-		https://www.server-world.info/en/note?os=Ubuntu_22.04&p=openstack_antelope5&f=4
-		
-	- Configurar Firewall (neutron-fwaas)
+	- OK! Mirar documentación Skyline (nueva interfaz Horizon) y ver si se puede implementar en Kolla.
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -215,13 +212,8 @@ ANSIBLE VERSIONS: https://docs.ansible.com/ansible/latest/reference_appendices/r
 | 6.x                              | Unmantain | 2.13           |
 +----------------------------------+-----------+----------------+
 
--------------------------------------------------------------------------------------------------------------------------------------------------------------
-FIREWALL
-
-	- No puedo crear el firewall: The resource could not be found. Neutron server returns request_ids: ['req-fc00a806-06ad-4b12-b668-f3f2be31f886']
-	- Creo que ya funciona
-
 -----------------------------------------------------------------------------------------------------------------------------------------------------------
+
 DOCUMENTACION
 
 - Heat Orchestration template (HOT)
@@ -253,6 +245,11 @@ DOCUMENTACION
 	
 - FWaas
 	https://docs.openstack.org/kolla-ansible/2024.1/reference/networking/neutron-extensions.html
+
+- Skyline
+	https://opendev.org/openstack/skyline-apiserver/src/branch/stable/2024.1/kolla
+	https://www.server-world.info/en/note?os=Ubuntu_22.04&p=openstack_antelope5&f=4
+	
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 PROBLEMAS ya SOLUCIONADOS
@@ -298,7 +295,6 @@ Nodo Controlador: failed: [10.0.0.21]: File \"/usr/local/lib/python3.10/dist-pac
 7. Gnocchi
 	https://bugs.launchpad.net/kolla-ansible/+bug/1920095
 	https://review.opendev.org/c/openstack/kolla-ansible/+/781595
-
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 PRUEBAS CON GLANCE
