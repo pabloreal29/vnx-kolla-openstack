@@ -55,14 +55,8 @@ openstack object create students-container --name studentsBBDD deploy/students.j
 #Crear el stack con todos los elementos del escenario
 openstack stack create -t deploy/escenarioTF_ASG.yaml my_stack
 
-# # Borrar el stack
-# openstack stack delete -y my_stack
-
-# # Borrar el contenedor y los objetos que contiene
-# openstack container delete -r students-container
-
-# #Esperar a que se cree el router del escenario antes de asignarle el firewall 
-# sleep 120
+#Esperar a que se cree el router del escenario antes de asignarle el firewall 
+sleep 120
 
 #Configuración del firewall
 subnet1_id=$(openstack subnet list --network Net1 -c ID -f value)
@@ -77,3 +71,9 @@ openstack firewall group rule create --protocol any --source-ip-address $subnet1
 openstack firewall group policy create --firewall-rule ssh_admin --firewall-rule www_lb my_policy_ingress 
 openstack firewall group policy create --firewall-rule server_connection my_policy_egress
 openstack firewall group create --ingress-firewall-policy my_policy_ingress --egress-firewall-policy  my_policy_egress --port $router_port --name my_firewall_group
+
+# # Borrar el stack
+# openstack stack delete -y my_stack
+
+# # Borrar el contenedor y los objetos que contiene
+# openstack container delete -r students-container
