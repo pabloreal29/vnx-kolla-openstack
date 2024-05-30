@@ -53,7 +53,7 @@ resources:
       aggregation_method: rate:mean
       granularity: 60 # Con otros valores tarda todavia mas en configurarse la alarma
       evaluation_periods: 2
-      threshold: 800000000.0 # Uso de CPU del 80% - Threshold = 10⁹ x Granularity x Percentage
+      threshold: 800000000.0 # Uso de CPU del 80% -> Threshold = 10⁹ x Granularity x Percentage
       resource_type: instance
       comparison_operator: gt
       alarm_actions:

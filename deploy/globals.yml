@@ -360,7 +360,7 @@ enable_gnocchi: "yes"
 #enable_horizon_blazar: "{{ enable_blazar | bool }}"
 #enable_horizon_cloudkitty: "{{ enable_cloudkitty | bool }}"
 #enable_horizon_designate: "{{ enable_designate | bool }}"
-#enable_horizon_fwaas: "{{ enable_neutron_fwaas | bool }}"
+enable_horizon_fwaas: "{{ enable_neutron_fwaas | bool }}"
 #enable_horizon_heat: "{{ enable_heat | bool }}"
 #enable_horizon_ironic: "{{ enable_ironic | bool }}"
 #enable_horizon_magnum: "{{ enable_magnum | bool }}"
@@ -393,7 +393,7 @@ enable_horizon_octavia: "{{ enable_octavia | bool }}"
 #enable_neutron_vpnaas: "no"
 #enable_neutron_sriov: "no"
 #enable_neutron_dvr: "no"
-#enable_neutron_fwaas: "no"
+enable_neutron_fwaas: "yes"
 #enable_neutron_qos: "no"
 #enable_neutron_agent_ha: "no"
 #enable_neutron_bgp_dragent: "no"
@@ -738,6 +738,7 @@ swift_devices_name: "swd"
 # were enabled and opposite
 # Rolling upgrade were enable by default
 #swift_enable_rolling_upgrade: "yes"
+swift_delay_auth_decision: "yes"
 
 ###################################
 # VMware - OpenStack VMware support

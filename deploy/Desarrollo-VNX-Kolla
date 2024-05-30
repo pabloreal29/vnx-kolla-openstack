@@ -10,16 +10,23 @@ TAREAS ACTUALES:
 	- Terminar de configurar Cinder (almacenamiento de bloques).
 	- Configurar Swift (almacenamiento de objetos).
 	- Diseñar una serie de pruebas con un uso de CPU concreto (ej: 40%, 50%, 60%) para ver cuándo se escala.
-	- Mirar documentación Skyline (nueva interfaz Horizon) y ver si se puede implementar en Kolla.
+	- Mirar documentación Skyline (nueva interfaz Horizon) y ver si se puede implementar en Kolla. Hecho, está en el puerto 9999
 		https://www.server-world.info/en/note?os=Ubuntu_22.04&p=openstack_antelope5&f=4
 		
 	- Configurar Firewall (neutron-fwaas)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+METRICAS GNOCCHI
+
+gnocchi metric list --sort-column name --sort-ascending
+gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c7-58e9b48a890a --start 2024-05-30T13:30:00+02:00
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
 PROBLEMA ACTUAL
 
-No se activa la interfaz de Skyline
+
 	
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 PETICIONES CURL
@@ -212,8 +219,41 @@ ANSIBLE VERSIONS: https://docs.ansible.com/ansible/latest/reference_appendices/r
 FIREWALL
 
 	- No puedo crear el firewall: The resource could not be found. Neutron server returns request_ids: ['req-fc00a806-06ad-4b12-b668-f3f2be31f886']
+	- Creo que ya funciona
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+DOCUMENTACION
+
+- Heat Orchestration template (HOT)
+	https://docs.openstack.org/heat/2024.1/template_guide/hot_spec.html#hot-spec-parameters-constraints
+	
+- AutoScaling
+	https://contactchanaka.medium.com/mastering-openstack-from-installation-to-auto-scaling-your-cloud-infrastructure-1bb05d422b16
+	https://access.redhat.com/documentation/es-es/red_hat_openstack_platform/16.0/html-single/auto_scaling_for_instances/index
+
+- Cinder NFS
+	https://hackmd.io/@yujungcheng/ByXxq-_Vj
+
+- Ceilometer
+	https://github.com/openstack/ceilometer/tree/stable/2024.1/ceilometer/pipeline/data
+	https://fleio.com/docs/2024.01/configuring/ceilometer-configuration.html
+	
+- Gnocchi
+	https://access.redhat.com/documentation/es-es/red_hat_openstack_platform/13/html/operational_measurements/planning-for-operational-measurements_osp
+	
+- Octavia
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/networking/octavia.html
+
+- Swift
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/storage/swift-guide.html
+	https://www.techtarget.com/searchstorage/definition/OpenStack-Swift/
+
+- Grafana
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/logging-and-monitoring/grafana-guide.html
+	
+- FWaas
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/networking/neutron-extensions.html
+------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 PROBLEMAS ya SOLUCIONADOS
 
@@ -254,6 +294,10 @@ Nodo Controlador: failed: [10.0.0.21]: File \"/usr/local/lib/python3.10/dist-pac
 	6.2 Swift. No se puede crear un contenedor desde la interfaz de Horizon (hay un bug con el tema de las politicas que no detecta ninguna. Error: no se ha podido descargar los detalles de la 			política).
 	Posible solucion: Añadir lineas a swift.conf y a globals.yml.
 	Solucion en: https://bugs.launchpad.net/kolla-ansible/+bug/1980880
+	
+7. Gnocchi
+	https://bugs.launchpad.net/kolla-ansible/+bug/1920095
+	https://review.opendev.org/c/openstack/kolla-ansible/+/781595
 
 
 -------------------------------------------------------------------------------------------------------------------------------------------------

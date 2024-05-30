@@ -1,5 +1,6 @@
 #!/bin/bash
-# Ejecucion: /home/p.realb/Desktop/CNVR/TF/ssh.sh -X, donde X es el parámetro a introducir.
+# Ejecucion: source deploy/ssh.sh -X, donde X es el parámetro a introducir.
+source deploy/myuser-openrc.sh
 
 if [ "$1" == "-s" ]; then
     openstack firewall group rule set ssh_admin --enable-rule

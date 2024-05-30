@@ -122,15 +122,16 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_gnocchi:.*/enable_gnocchi: "yes"/' /etc/kolla/globals.yml
         pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2024.1
 
+        <!-- Añadido Por Pablo. Habilitar FWaaS-->
+        sed -i 's/#enable_neutron_fwaas:.*/enable_neutron_fwaas: "yes"/' /etc/kolla/globals.yml
+
         <!-- Añadido Por Pablo. Habilitar Octavia-->
         pip install python-octaviaclient
-
         sed -i 's/#octavia_network_interface:.*/octavia_network_interface: "eth3.1005"/' /etc/kolla/globals.yml
         sed -i 's/#enable_octavia:.*/enable_octavia: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_redis:.*/enable_redis: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_horizon_octavia:.*/enable_horizon_octavia: "{{ enable_octavia | bool }}"/' /etc/kolla/globals.yml
         sed -i 's/#octavia_auto_configure:.*/octavia_auto_configure: "yes"/' /etc/kolla/globals.yml
-
         sed -i '/#octavia_amp_network:/,/enable_dhcp: yes/{
   /#octavia_amp_network:/{
     s/#octavia_amp_network:/octavia_amp_network:/g
@@ -149,7 +150,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i -e 's/network_vlan_ranges =.*/network_vlan_ranges = physnet1/' /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/ml2_conf.ini.j2
         echo 'dhcp-option-force=26,1400' >> /root/kolla/share/kolla-ansible/ansible/roles/neutron/templates/dnsmasq.conf.j2
 
-        <!-- Añadido por Pablo. Configuración de Aodh y Ceilometer -->
+        <!-- Añadido por Pablo. Configuración de Aodh, Gnocchi y Ceilometer -->
         sed -i 's/#enable_aodh:.*/enable_aodh: "yes"/' /etc/kolla/globals.yml
         pip install aodhclient
         pip install gnocchiclient
@@ -172,7 +173,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         echo "controller:/kolla_nfs" >> /etc/kolla/config/nfs_shares
         chmod 777 /etc/kolla/config/nfs_shares
 
-        <!-- Añadido por Pablo. Habilitar Skyline-->
+        <!-- Añadido por Pablo. Habilitar Skyline. Documentacion: https://opendev.org/openstack/skyline-apiserver/src/branch/stable/2024.1/kolla-->
+        <!-- mkdir -p /etc/ansible
+        echo -e "[defaults]\nhost_key_checking=False\npipelining=True\nforks=100" > /etc/ansible/ansible.cfg -->
         sed -i 's/#enable_skyline:.*/enable_skyline: "yes"/' /etc/kolla/globals.yml
 
         <!-- Añadido Por Pablo. Habilitar Swift-->
@@ -497,9 +500,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 8G swift-disk1.img
-        fallocate -l 8G swift-disk2.img
-        fallocate -l 8G swift-disk3.img
+        fallocate -l 5G swift-disk1.img
+        fallocate -l 5G swift-disk2.img
+        fallocate -l 5G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
@@ -579,9 +582,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 8G swift-disk1.img
-        fallocate -l 8G swift-disk2.img
-        fallocate -l 8G swift-disk3.img
+        fallocate -l 5G swift-disk1.img
+        fallocate -l 5G swift-disk2.img
+        fallocate -l 5G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
@@ -661,9 +664,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 8G swift-disk1.img
-        fallocate -l 8G swift-disk2.img
-        fallocate -l 8G swift-disk3.img
+        fallocate -l 5G swift-disk1.img
+        fallocate -l 5G swift-disk2.img
+        fallocate -l 5G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
