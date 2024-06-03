@@ -40,25 +40,25 @@ chmod 700 ./tmp/keys/s2
 chmod 700 ./tmp/keys/s3
 
 #Importar imagenes de las VMs
-openstack image create focal-servers-vnx --file /home/pabloreal/openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-servers-vnx --file /home/pabloreal/openstack-images/asg_servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 openstack image create focal-bbdd-vnx --file /home/pabloreal/openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-openstack image create focal-admin-vnx --file /home/pabloreal/openstack-images/admin_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-administrador-vnx --file /home/pabloreal/openstack-images/administrador_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 
 #Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
 #Nota: he reducido las vcpus y la ram respecto al trabajo de cnvr
 openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 
-#Crear un contenedor con una copia de la bbbdd de estudiantes
+#Crear un contenedor con una copia de la bbdd de estudiantes
 openstack container create students-container
-openstack object create students-container --name studentsBBDD deploy/students.json
+openstack object create students-container --name studentsBBDD.json deploy/students.json
 
 #Crear el stack con todos los elementos del escenario
 openstack stack create -t deploy/escenarioTF_ASG.yaml my_stack
 
 #Esperar a que se cree el router del escenario antes de asignarle el firewall 
-sleep 120
+sleep 60
 
-#Configuración del firewall
+#Configuracion del firewall
 subnet1_id=$(openstack subnet list --network Net1 -c ID -f value)
 subnet1_cidr=$(openstack subnet show subnet1 -c cidr -f value)
 router_port=$(openstack port list --router firewall_router --fixed-ip subnet=$subnet1_id -c ID -f value)
@@ -70,7 +70,7 @@ openstack firewall group rule create --protocol tcp --destination-ip-address $lb
 openstack firewall group rule create --protocol any --source-ip-address $subnet1_cidr --action allow --name server_connection 
 openstack firewall group policy create --firewall-rule ssh_admin --firewall-rule www_lb my_policy_ingress 
 openstack firewall group policy create --firewall-rule server_connection my_policy_egress
-openstack firewall group create --ingress-firewall-policy my_policy_ingress --egress-firewall-policy  my_policy_egress --port $router_port --name my_firewall_group
+openstack firewall group create --ingress-firewall-policy my_policy_ingress --egress-firewall-policy  my_policy_egress --port $router_port --name my_fw_group
 
 # # Borrar el stack
 # openstack stack delete -y my_stack

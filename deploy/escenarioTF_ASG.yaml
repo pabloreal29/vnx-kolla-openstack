@@ -2,6 +2,25 @@ heat_template_version: wallaby
 
 description: Creación del escenario del Trabajo Final en OpenStack
 
+parameters:
+  admin_image:
+    type: string
+    description: admin instance image to be used
+    default: focal-administrador-vnx
+  admin_flavor:
+    type: string
+    description: admin instance flavor to be used
+    default: m1.smaller
+  bbdd_image:
+    type: string
+    description: bbdd instance image to be used
+    default: focal-bbdd-vnx
+  bbdd_flavor:
+    type: string
+    description: bbdd instance flavor to be used
+    default: m1.large
+
+
 resources:
 
 ## AUTO_SCALING_GROUP DE SERVIDORES ----------------------------------------
@@ -191,13 +210,15 @@ resources:
 
   port_admin1:
     type: OS::Neutron::Port
+    depends_on:
+    - fw_router_inface
     properties:
       network: {get_resource: net1}
       name: port_admin1
       security_groups: 
         - {get_resource: security_group}
-      fixed_ips:
-      - subnet: {get_resource: subnet1} 
+      fixed_ips: 
+        - ip_address: 10.1.1.94
   
   port_admin2:
     type: OS::Neutron::Port
@@ -231,8 +252,8 @@ resources:
     type: OS::Nova::Server
     properties:
       name: administrador
-      image: focal-admin-vnx
-      flavor: m1.smaller
+      image: {get_param: admin_image}
+      flavor: {get_param: admin_flavor}
       networks:
       - network: {get_resource: net1}
         port: {get_resource: port_admin1}
@@ -240,6 +261,10 @@ resources:
       - network: {get_resource: net2}
         port: {get_resource: port_admin2}
       key_name: administrador
+      user_data_format: RAW
+      user_data: |
+        #!/bin/bash
+        systemctl start nfs-kernel-server
 
     
   ## BASE DE DATOS ----------------------------------------
@@ -248,8 +273,8 @@ resources:
     type: OS::Nova::Server
     properties:
       name: bbdd
-      image: focal-bbdd-vnx
-      flavor: m1.large
+      image: {get_param: bbdd_image}
+      flavor: {get_param: bbdd_flavor}
       networks:
       - network: {get_resource: net2}
         port: {get_resource: portBBDD_net2}

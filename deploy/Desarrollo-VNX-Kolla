@@ -21,9 +21,61 @@ gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-PROBLEMA ACTUAL
+MODIFICACION ESCENARIO CNVR
+	Utilizar el servidor de administracion como nfs-kernel-server
+	Los servidores del grupo de autoescalado son nfs-common y acceden a la memoria compartida en /mnt/shared_volume
+	Fijamos la IP de admin en Net1 (10.1.1.94) ya que es necesaria en la configuración de los servidores de autoescalado para que se conecten a ella.
 
+	1. Obtener el ID del Volumen de Cinder:
 
+	Puedes obtener el ID del volumen de Cinder creado utilizando la CLI de OpenStack o el panel de control de Horizon.
+	Usando la CLI de OpenStack:
+		openstack volume list
+
+	Esto te proporcionará una lista de todos los volúmenes de Cinder en tu entorno OpenStack junto con sus IDs. Busca el ID del volumen que acabas de crear.
+	2. Crear un Recurso de Intercambio NFS en el Volumen de Cinder:
+
+	Dado que no hay un recurso de intercambio NFS directamente en Heat, deberás configurar manualmente el recurso de intercambio NFS en el volumen de Cinder. Esto generalmente implica configurar un servidor que exporte el sistema de archivos del volumen de Cinder a través de NFS.
+	Crear la carpeta compartida:
+		mkdir /mnt/shared_volume
+
+	Instalar el paquete NFS en un servidor:
+		apt-get update
+		apt-get install nfs-kernel-server
+
+	Editar el archivo /etc/exports:
+	Añade una línea al final del archivo /etc/exports que especifique el directorio que deseas compartir y las opciones de acceso. Por ejemplo:
+		/mnt/shared_volume *(rw,sync,no_root_squash)
+
+	Esto comparte el directorio /mnt/shared_volume con permisos de lectura y escritura para cualquier cliente NFS.
+
+	Reiniciar el Servicio NFS:
+	    systemctl restart nfs-kernel-server
+
+	3. Configurar el Servidor para Montar el Recurso NFS:
+
+	Una vez que hayas configurado el servidor NFS, necesitas configurar los servidores de tu grupo de autoescalado para que monten el recurso NFS.
+	En cada servidor del Grupo de Autoescalado:
+
+	    Instalar el paquete NFS:
+		apt-get install nfs-common
+
+	Crear un directorio de montaje:
+		mkdir /mnt/shared_volume
+
+	Montar el recurso NFS:
+		mount 10.1.1.94:/mnt/shared_volume /mnt/shared_volume
+
+	Donde <NFS_server_IP>:10.1.1.94 es la dirección IP del servidor NFS configurado anteriormente.
+
+	Hacer el montaje persistente:
+	Para asegurarte de que el recurso NFS se monte automáticamente en el arranque, añade una entrada en el archivo /etc/fstab:
+
+	ruby
+
+	    10.1.1.94:/mnt/shared_volume /mnt/shared_volume nfs defaults 0 0
+
+	Una vez completados estos pasos, el recurso de intercambio NFS en el volumen de Cinder estará configurado y los servidores en tu grupo de autoescalado podrán acceder a él y compartir archivos a través de NFS.
 	
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 PETICIONES CURL

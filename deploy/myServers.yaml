@@ -51,6 +51,7 @@ resources:
         #!/bin/bash
         systemctl start apache2
         echo "<h1>Bienvenidos a un Servidor Extra</h1>" > /var/www/html/index.html
+        systemctl start nfs*
   
   lb_member:
     type: OS::Octavia::PoolMember
@@ -72,3 +73,16 @@ resources:
       network: {get_param: network2}
       security_groups: 
         - {get_param: security_group}
+  
+  # my_volume:
+  #   type: OS::Cinder::Volume
+  #   properties:
+  #     size: 1
+  
+  # my_volume_attachment:
+  #   type: OS::Cinder::VolumeAttachment
+  #   properties:
+  #     instance_uuid: {get_resource: server}
+  #     volume_id: {get_resource: my_volume}
+  #     mountpoint: "/dev/vdb"
+  

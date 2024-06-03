@@ -76,10 +76,6 @@ for ring in object account container; do
       /etc/kolla/config/swift/${ring}.builder rebalance;
 done
 
-# # Cambiar permisos de los archivos de configuracion de los anillos
-# cd /etc/kolla/config/swift
-# chmod 777 container.builder object.builder account.builder
-
 EOF
 
 # Copiar archivos obtenidos al nodo admin
