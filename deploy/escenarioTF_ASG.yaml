@@ -274,6 +274,10 @@ resources:
     properties:
       name: bbdd
       image: {get_param: bbdd_image}
+      # block_device_mapping_v2:
+      # - delete_on_termination: true
+      #   image: {get_param: bbdd_image}
+      #   volume_size: 5
       flavor: {get_param: bbdd_flavor}
       networks:
       - network: {get_resource: net2}
@@ -283,6 +287,18 @@ resources:
       user_data: |
         #!/bin/bash
         systemctl start mongod
+
+  # my_volume:
+  #   type: OS::Cinder::Volume
+  #   properties:
+  #     size: 5
+  #     image: {get_param: bbdd_image}
+  
+  # my_volume_attachment:
+  #   type: OS::Cinder::VolumeAttachment
+  #   properties:
+  #     instance_uuid: {get_resource: bbdd}
+  #     volume_id: {get_resource: my_volume}
 
 
   ## OUTPUTS ------------------------------------------------

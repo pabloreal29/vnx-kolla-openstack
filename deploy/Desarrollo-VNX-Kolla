@@ -10,14 +10,52 @@ TAREAS ACTUALES:
 	- Terminar de configurar Cinder (almacenamiento de bloques).
 	- OK! Configurar Swift (almacenamiento de objetos).
 	- Diseñar una serie de pruebas con un uso de CPU concreto (ej: 40%, 50%, 60%) para ver cuándo se escala.
-	- OK! Mirar documentación Skyline (nueva interfaz Horizon) y ver si se puede implementar en Kolla.
+	- OK! Mirar documentación Skyline (nueva interfaz Horizon) y ver si se puede implementar en Kolla. Intercambiar puertos de Skyline y Horizon.
+	
+	- Ver despliegue autoescalado con Terraform.
+	- Ver implementación Grafana.
+	- Cinder: ver si podemos attachear correctamente los volumenes a las instancias.
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-METRICAS GNOCCHI
+COMANDOS IMPORTANTES
 
 gnocchi metric list --sort-column name --sort-ascending
 gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c7-58e9b48a890a --start 2024-05-30T13:30:00+02:00
+
+386870000000.0
+386870000000.0
+183333333.33333397
+
+800000000.0
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+CINDER
+
+Error: Ha fallado la ejecución de la operación solicitada en la instancia "prueba", la instancia tiene un estado de error.: Por favor inténtelo de nuevo más tarde [Error: Exceeded maximum number of retries. Exhausted all hosts available for retrying build failures for instance da2bae1f-fef2-4f6d-b218-7ff0a825fc1b.]. 
+
+024-06-10 11:12:37.253 17 INFO oslo_messaging._drivers.amqpdriver [None req-6e52a67a-90bf-40bf-97fc-88827eafc829 2ed8fb2e496d4f50ae1f51307d5135ae 64ef4ef1b72f48aa88e1a268c38bb40f - - default default] Expecting reply to msg 437f44875a15454cb6189d504e53a79c in queue reply_10cd83fada4c4d7aab61e0b3f7cdf973
+2024-06-10 11:12:37.496 17 INFO oslo_messaging._drivers.amqpdriver [-] Received RPC response for msg 437f44875a15454cb6189d504e53a79c
+2024-06-10 11:12:55.701 17 ERROR nova.scheduler.utils [None req-6e52a67a-90bf-40bf-97fc-88827eafc829 2ed8fb2e496d4f50ae1f51307d5135ae 64ef4ef1b72f48aa88e1a268c38bb40f - - default default] [instance: 39c5bc3e-819c-41ed-8494-5a49fe61d178] Error from last host: compute2 (node compute2): ['Traceback (most recent call last):\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2632, in _build_and_run_instance\n    self.driver.spawn(context, instance, image_meta,\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 4646, in spawn\n    self._create_guest_with_network(\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 8036, in _create_guest_with_network\n    with excutils.save_and_reraise_exception():\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 227, in __exit__\n    self.force_reraise()\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 200, in force_reraise\n    raise self.value\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 8014, in _create_guest_with_network\n    guest = self._create_guest(\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 7953, in _create_guest\n    guest.launch(pause=pause)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/guest.py", line 167, in launch\n    with excutils.save_and_reraise_exception():\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 227, in __exit__\n    self.force_reraise()\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 200, in force_reraise\n    raise self.value\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/guest.py", line 165, in launch\n    return self._domain.createWithFlags(flags)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 186, in doit\n    result = proxy_call(self._autowrap, f, *args, **kwargs)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 144, in proxy_call\n    rv = execute(f, *args, **kwargs)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 125, in execute\n    raise e.with_traceback(tb)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 82, in tworker\n    rv = meth(*args, **kwargs)\n', '  File "/usr/lib/python3/dist-packages/libvirt.py", line 1385, in createWithFlags\n    raise libvirtError(\'virDomainCreateWithFlags() failed\')\n', 'libvirt.libvirtError: internal error: process exited while connecting to monitor: 2024-06-10T11:12:54.614443Z qemu-system-x86_64: -blockdev {"driver":"file","filename":"/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8","aio":"native","node-name":"libvirt-1-storage","cache":{"direct":true,"no-flush":false},"auto-read-only":true,"discard":"unmap"}: Could not open \'/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8\': Permission denied\n', '\nDuring handling of the above exception, another exception occurred:\n\n', 'Traceback (most recent call last):\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2447, in _do_build_and_run_instance\n    self._build_and_run_instance(context, instance, image,\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2739, in _build_and_run_instance\n    raise exception.RescheduledException(\n', 'nova.exception.RescheduledException: Build of instance 39c5bc3e-819c-41ed-8494-5a49fe61d178 was re-scheduled: internal error: process exited while connecting to monitor: 2024-06-10T11:12:54.614443Z qemu-system-x86_64: -blockdev {"driver":"file","filename":"/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8","aio":"native","node-name":"libvirt-1-storage","cache":{"direct":true,"no-flush":false},"auto-read-only":true,"discard":"unmap"}: Could not open \'/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8\': Permission denied\n']
+2024-06-10 11:12:55.849 17 ERROR nova.volume.cinder [None req-6e52a67a-90bf-40bf-97fc-88827eafc829 2ed8fb2e496d4f50ae1f51307d5135ae 64ef4ef1b72f48aa88e1a268c38bb40f - - default default] Show attachment failed for attachment a64294ca-1b86-42b1-8fb1-7acb6b04ed30. Error: Volume attachment could not be found with filter: attachment_id = a64294ca-1b86-42b1-8fb1-7acb6b04ed30. (HTTP 404) (Request-ID: req-81b3b9b7-15a1-47ec-a9ca-f71a389f4a7f) Code: 404: cinderclient.exceptions.NotFound: Volume attachment could not be found with filter: attachment_id = a64294ca-1b86-42b1-8fb1-7acb6b04ed30. (HTTP 404) (Request-ID: req-81b3b9b7-15a1-47ec-a9ca-f71a389f4a7f)
+2024-06-10 11:12:58.885 18 ERROR nova.scheduler.utils [None req-6e52a67a-90bf-40bf-97fc-88827eafc829 2ed8fb2e496d4f50ae1f51307d5135ae 64ef4ef1b72f48aa88e1a268c38bb40f - - default default] [instance: 39c5bc3e-819c-41ed-8494-5a49fe61d178] Error from last host: compute1 (node compute1): ['Traceback (most recent call last):\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2632, in _build_and_run_instance\n    self.driver.spawn(context, instance, image_meta,\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 4646, in spawn\n    self._create_guest_with_network(\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 8036, in _create_guest_with_network\n    with excutils.save_and_reraise_exception():\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 227, in __exit__\n    self.force_reraise()\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 200, in force_reraise\n    raise self.value\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 8014, in _create_guest_with_network\n    guest = self._create_guest(\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 7953, in _create_guest\n    guest.launch(pause=pause)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/guest.py", line 167, in launch\n    with excutils.save_and_reraise_exception():\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 227, in __exit__\n    self.force_reraise()\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 200, in force_reraise\n    raise self.value\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/guest.py", line 165, in launch\n    return self._domain.createWithFlags(flags)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 186, in doit\n    result = proxy_call(self._autowrap, f, *args, **kwargs)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 144, in proxy_call\n    rv = execute(f, *args, **kwargs)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 125, in execute\n    raise e.with_traceback(tb)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 82, in tworker\n    rv = meth(*args, **kwargs)\n', '  File "/usr/lib/python3/dist-packages/libvirt.py", line 1385, in createWithFlags\n    raise libvirtError(\'virDomainCreateWithFlags() failed\')\n', 'libvirt.libvirtError: internal error: process exited while connecting to monitor: 2024-06-10T11:12:57.868424Z qemu-system-x86_64: -blockdev {"driver":"file","filename":"/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8","aio":"native","node-name":"libvirt-1-storage","cache":{"direct":true,"no-flush":false},"auto-read-only":true,"discard":"unmap"}: Could not open \'/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8\': Permission denied\n', '\nDuring handling of the above exception, another exception occurred:\n\n', 'Traceback (most recent call last):\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2447, in _do_build_and_run_instance\n    self._build_and_run_instance(context, instance, image,\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2739, in _build_and_run_instance\n    raise exception.RescheduledException(\n', 'nova.exception.RescheduledException: Build of instance 39c5bc3e-819c-41ed-8494-5a49fe61d178 was re-scheduled: internal error: process exited while connecting to monitor: 2024-06-10T11:12:57.868424Z qemu-system-x86_64: -blockdev {"driver":"file","filename":"/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8","aio":"native","node-name":"libvirt-1-storage","cache":{"direct":true,"no-flush":false},"auto-read-only":true,"discard":"unmap"}: Could not open \'/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8\': Permission denied\n']
+2024-06-10 11:12:59.006 18 ERROR nova.volume.cinder [None req-6e52a67a-90bf-40bf-97fc-88827eafc829 2ed8fb2e496d4f50ae1f51307d5135ae 64ef4ef1b72f48aa88e1a268c38bb40f - - default default] Show attachment failed for attachment 0b7af166-7a9b-40b6-9327-6404f45c5ed8. Error: Volume attachment could not be found with filter: attachment_id = 0b7af166-7a9b-40b6-9327-6404f45c5ed8. (HTTP 404) (Request-ID: req-7aaa2aad-66a3-456d-9fa8-1a1136663d84) Code: 404: cinderclient.exceptions.NotFound: Volume attachment could not be found with filter: attachment_id = 0b7af166-7a9b-40b6-9327-6404f45c5ed8. (HTTP 404) (Request-ID: req-7aaa2aad-66a3-456d-9fa8-1a1136663d84)
+2024-06-10 11:13:01.822 17 ERROR nova.scheduler.utils [None req-6e52a67a-90bf-40bf-97fc-88827eafc829 2ed8fb2e496d4f50ae1f51307d5135ae 64ef4ef1b72f48aa88e1a268c38bb40f - - default default] [instance: 39c5bc3e-819c-41ed-8494-5a49fe61d178] Error from last host: compute3 (node compute3): ['Traceback (most recent call last):\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2632, in _build_and_run_instance\n    self.driver.spawn(context, instance, image_meta,\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 4646, in spawn\n    self._create_guest_with_network(\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 8036, in _create_guest_with_network\n    with excutils.save_and_reraise_exception():\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 227, in __exit__\n    self.force_reraise()\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 200, in force_reraise\n    raise self.value\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 8014, in _create_guest_with_network\n    guest = self._create_guest(\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/driver.py", line 7953, in _create_guest\n    guest.launch(pause=pause)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/guest.py", line 167, in launch\n    with excutils.save_and_reraise_exception():\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 227, in __exit__\n    self.force_reraise()\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/oslo_utils/excutils.py", line 200, in force_reraise\n    raise self.value\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/virt/libvirt/guest.py", line 165, in launch\n    return self._domain.createWithFlags(flags)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 186, in doit\n    result = proxy_call(self._autowrap, f, *args, **kwargs)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 144, in proxy_call\n    rv = execute(f, *args, **kwargs)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 125, in execute\n    raise e.with_traceback(tb)\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/eventlet/tpool.py", line 82, in tworker\n    rv = meth(*args, **kwargs)\n', '  File "/usr/lib/python3/dist-packages/libvirt.py", line 1385, in createWithFlags\n    raise libvirtError(\'virDomainCreateWithFlags() failed\')\n', 'libvirt.libvirtError: internal error: qemu unexpectedly closed the monitor: 2024-06-10T11:13:00.678942Z qemu-system-x86_64: -blockdev {"driver":"file","filename":"/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8","aio":"native","node-name":"libvirt-1-storage","cache":{"direct":true,"no-flush":false},"auto-read-only":true,"discard":"unmap"}: Could not open \'/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8\': Permission denied\n', '\nDuring handling of the above exception, another exception occurred:\n\n', 'Traceback (most recent call last):\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2447, in _do_build_and_run_instance\n    self._build_and_run_instance(context, instance, image,\n', '  File "/var/lib/kolla/venv/lib/python3.10/site-packages/nova/compute/manager.py", line 2739, in _build_and_run_instance\n    raise exception.RescheduledException(\n', 'nova.exception.RescheduledException: Build of instance 39c5bc3e-819c-41ed-8494-5a49fe61d178 was re-scheduled: internal error: qemu unexpectedly closed the monitor: 2024-06-10T11:13:00.678942Z qemu-system-x86_64: -blockdev {"driver":"file","filename":"/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8","aio":"native","node-name":"libvirt-1-storage","cache":{"direct":true,"no-flush":false},"auto-read-only":true,"discard":"unmap"}: Could not open \'/var/lib/nova/mnt/f7664def1ffbf715e47f5e4c0af12026/volume-8acb17b4-77c6-4a49-9094-f3a20490dff8\': Permission denied\n']
+2024-06-10 11:13:01.822 17 WARNING nova.scheduler.utils [None req-6e52a67a-90bf-40bf-97fc-88827eafc829 2ed8fb2e496d4f50ae1f51307d5135ae 64ef4ef1b72f48aa88e1a268c38bb40f - - default default] Failed to compute_task_build_instances: Exceeded maximum number of retries. Exhausted all hosts available for retrying build failures for instance 39c5bc3e-819c-41ed-8494-5a49fe61d178.: nova.exception.MaxRetriesExceeded: Exceeded maximum number of retries. Exhausted all hosts available for retrying build failures for instance 39c5bc3e-819c-41ed-8494-5a49fe61d178.
+2024-06-10 11:13:01.823 17 WARNING nova.scheduler.utils [None req-6e52a67a-90bf-40bf-97fc-88827eafc829 2ed8fb2e496d4f50ae1f51307d5135ae 64ef4ef1b72f48aa88e1a268c38bb40f - - default default] [instance: 39c5bc3e-819c-41ed-8494-5a49fe61d178] Setting instance to ERROR state.: nova.exception.MaxRetriesExceeded: Exceeded maximum number of retries. Exhausted all hosts available for retrying build failures for instance 39c5bc3e-819c-41ed-8494-5a49fe61d178.
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+GRAFANA DASHBOARD
+	
+	Cambiar contraseña: https://opendev.org/openstack/kolla-ansible/src/branch/stable/2024.1/doc/source/admin/password-rotation.rst
+	
+	user: admin
+	password: dentro del nodo controller, en /etc/kolla/grafana/grafana.ini, el atributo admin_password 
+	
+	Dashboards -> Create Dashboard -> Add Visualisation -> Select Data Source -> Prometheus
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -275,8 +313,10 @@ DOCUMENTACION
 	https://contactchanaka.medium.com/mastering-openstack-from-installation-to-auto-scaling-your-cloud-infrastructure-1bb05d422b16
 	https://access.redhat.com/documentation/es-es/red_hat_openstack_platform/16.0/html-single/auto_scaling_for_instances/index
 
-- Cinder NFS
+- Cinder NFS (ahora es LVM, mirar último enlace):
 	https://hackmd.io/@yujungcheng/ByXxq-_Vj
+	https://www.server-world.info/en/note?os=CentOS_Stream_9&p=openstack_bobcat2&f=13
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/storage/cinder-guide.html
 
 - Ceilometer
 	https://github.com/openstack/ceilometer/tree/stable/2024.1/ceilometer/pipeline/data
@@ -291,9 +331,12 @@ DOCUMENTACION
 - Swift
 	https://docs.openstack.org/kolla-ansible/2024.1/reference/storage/swift-guide.html
 	https://www.techtarget.com/searchstorage/definition/OpenStack-Swift/
+	https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/object.html
 
 - Grafana
 	https://docs.openstack.org/kolla-ansible/2024.1/reference/logging-and-monitoring/grafana-guide.html
+	https://achchusnulchikam.medium.com/monitoring-instances-on-openstack-using-collectd-graphite-and-grafana-38c757355457
+	https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-prometheus/prometheus-config-examples/the-openstack-community-kolla/
 	
 - FWaas
 	https://docs.openstack.org/kolla-ansible/2024.1/reference/networking/neutron-extensions.html
@@ -301,6 +344,9 @@ DOCUMENTACION
 - Skyline
 	https://opendev.org/openstack/skyline-apiserver/src/branch/stable/2024.1/kolla
 	https://www.server-world.info/en/note?os=Ubuntu_22.04&p=openstack_antelope5&f=4
+	
+- Neutron
+	https://docs.openstack.org/kolla-ansible/latest/reference/networking/neutron.html
 	
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -380,6 +426,31 @@ Ejecutar: systemctl restart kolla-glance_api-container.service
 MÁS ALTERNATIVAS: Swift y Ceph no se habilitan correctamente en la configuración. Cinder necesita de una imagen de Glance, no sirve.
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
+CONFIGURACION NFS
+
+Admin:
+	sed -i 's/#enable_cinder_backup:.*/enable_cinder_backup: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_cinder_backend_nfs:.*/enable_cinder_backend_nfs: "yes"/' /etc/kolla/globals.yml
+
+        sed -i 's/#cinder_backup_driver:.*/cinder_backup_driver: "nfs"/' /etc/kolla/globals.yml
+        sed -i 's/^#*\(cinder_backup_share:\).*/\1 "controller:\/kolla_nfs"/' /etc/kolla/globals.yml
+        sed -i 's/#cinder_backup_mount_options_nfs:.*/cinder_backup_mount_options_nfs: ""/' /etc/kolla/globals.yml
+
+        echo "controller:/kolla_nfs" >> /etc/kolla/config/nfs_shares
+        chmod 777 /etc/kolla/config/nfs_shares
+        
+        
+Controller:
+    <exec seq="setup-nfs" type="verbatim">
+        apt install nfs-kernel-server -y
+        echo "/kolla_nfs 10.0.0.1/24(rw,sync,no_root_squash)" >> /etc/exports
+        chmod 777 /etc/exports
+        mkdir /kolla_nfs
+        systemctl restart nfs-kernel-server
+    </exec>
+    
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
 DESCRIPCIÓN ESCENARIO
 
 El escenario es el siguiente:

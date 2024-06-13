@@ -42,7 +42,8 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         <console id="0" display="no"/>
         <console id="1" display="yes"/>
     </vm_defaults>
-    <cmd-seq seq="config-admin">config-admin1,config-admin2,setup-nfs</cmd-seq>
+    <!-- <cmd-seq seq="config-admin">config-admin1,config-admin2,setup-nfs</cmd-seq> -->
+    <cmd-seq seq="config-admin">config-admin1,config-admin2</cmd-seq>
   </global>
 
   <net name="MgmtNet" mode="openvswitch" mtu="1450"/>
@@ -163,18 +164,12 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
         <!-- Añadido por Pablo. Habilitar Cinder-->
         sed -i 's/#enable_cinder:.*/enable_cinder: "yes"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_cinder_backup:.*/enable_cinder_backup: "yes"/' /etc/kolla/globals.yml
-        sed -i 's/#enable_cinder_backend_nfs:.*/enable_cinder_backend_nfs: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_cinder_backend_lvm:.*/enable_cinder_backend_lvm: "yes"/' /etc/kolla/globals.yml
 
-        sed -i 's/#cinder_backup_driver:.*/cinder_backup_driver: "nfs"/' /etc/kolla/globals.yml
-        sed -i 's/^#*\(cinder_backup_share:\).*/\1 "controller:\/kolla_nfs"/' /etc/kolla/globals.yml
-        sed -i 's/#cinder_backup_mount_options_nfs:.*/cinder_backup_mount_options_nfs: ""/' /etc/kolla/globals.yml
-
-        echo "controller:/kolla_nfs" >> /etc/kolla/config/nfs_shares
-        chmod 777 /etc/kolla/config/nfs_shares
-
-        <!-- Añadido por Pablo. Habilitar Skyline-->
+        <!-- Añadido por Pablo. Habilitar Skyline en el puerto 80-->
         sed -i 's/#enable_skyline:.*/enable_skyline: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/horizon_port:.*/horizon_port: "9999"/' /root/kolla/share/kolla-ansible/ansible/group_vars/all.yml
+        sed -i 's/skyline_console_port:.*/skyline_console_port: "80"/' /root/kolla/share/kolla-ansible/ansible/group_vars/all.yml
 
         <!-- Añadido Por Pablo. Habilitar Swift-->
         pip install python-swiftclient
@@ -185,6 +180,11 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         
         sed -i '$ a\[storage-policy:0]\nname = Policy-0\ndefault = true' /root/kolla/share/kolla-ansible/ansible/roles/swift/templates/swift.conf.j2
         sed -i '/#swift_enable_rolling_upgrade: "yes"/a swift_delay_auth_decision: "yes"' /etc/kolla/globals.yml
+
+        <!-- Añadido Por Pablo. Habilitar Grafana-->
+        sed -i 's/grafana_admin_password:.*/grafana_admin_password: grafana/' /etc/kolla/passwords.yml
+        sed -i 's/#enable_grafana:.*/enable_grafana: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_prometheus:.*/enable_prometheus: "yes"/' /etc/kolla/globals.yml
 
         <!-- Añadido por Pablo. Otras utilidades-->
         apt-get install nano
@@ -394,14 +394,13 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         ip link add link eth3 name eth3.1005 type vlan id 1005
         ip link set dev eth3.1005 up
         ip addr add 10.10.0.0/24 dev eth3.1005
-    </exec>
 
-    <exec seq="setup-nfs" type="verbatim">
-        apt install nfs-kernel-server -y
-        echo "/kolla_nfs 10.0.0.1/24(rw,sync,no_root_squash)" >> /etc/exports
-        chmod 777 /etc/exports
-        mkdir /kolla_nfs
-        systemctl restart nfs-kernel-server
+        <!-- Añadido por Pablo. Crear Volume Group para Cinder -->
+        free_device=$(losetup -f)
+        fallocate -l 5G /var/lib/cinder_data.img
+        losetup $free_device /var/lib/cinder_data.img
+        pvcreate $free_device
+        vgcreate cinder-volumes $free_device
     </exec>
 
   </vm>
@@ -498,9 +497,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 5G swift-disk1.img
-        fallocate -l 5G swift-disk2.img
-        fallocate -l 5G swift-disk3.img
+        fallocate -l 2G swift-disk1.img
+        fallocate -l 2G swift-disk2.img
+        fallocate -l 2G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
@@ -524,7 +523,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/node/swd2
 
         mount -a
-
     </exec>
 
     <!-- Copy ntp config and restart service -->
@@ -580,9 +578,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 5G swift-disk1.img
-        fallocate -l 5G swift-disk2.img
-        fallocate -l 5G swift-disk3.img
+        fallocate -l 2G swift-disk1.img
+        fallocate -l 2G swift-disk2.img
+        fallocate -l 2G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
@@ -606,7 +604,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/node/swd2
 
         mount -a
-
     </exec>
 
     <!-- Copy ntp config and restart service -->
@@ -662,9 +659,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/swift-disk
         cd /srv/swift-disk
 
-        fallocate -l 5G swift-disk1.img
-        fallocate -l 5G swift-disk2.img
-        fallocate -l 5G swift-disk3.img
+        fallocate -l 2G swift-disk1.img
+        fallocate -l 2G swift-disk2.img
+        fallocate -l 2G swift-disk3.img
 
         # Asignar dispositivos loopback específicos
         losetup /dev/loop10 /srv/swift-disk/swift-disk1.img
@@ -688,7 +685,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/node/swd2
 
         mount -a
-
     </exec>
 
     <!-- Copy ntp config and restart service -->

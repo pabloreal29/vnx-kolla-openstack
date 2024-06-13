@@ -369,7 +369,7 @@ network
 [manila-data:children]
 manila
 
-# Swift. Modificado por Pablo. Usar los nodos de computacion como Storage Nodes
+# Swift. Modificado por Pablo. Utilizar el nodo controlador para el servicio de swift-proxy-server
 [swift-proxy-server:children]
 control
 
