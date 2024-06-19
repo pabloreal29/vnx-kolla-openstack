@@ -19,3 +19,7 @@ kolla-ansible -i $INVENTORY --configdir /etc/kolla bootstrap-servers
 kolla-ansible -i $INVENTORY --configdir /etc/kolla prechecks
 kolla-ansible -i $INVENTORY --configdir /etc/kolla deploy
 kolla-ansible post-deploy
+
+# Añadido por Pablo. Configuracion de Trove
+./conf-trove
+kolla-ansible -i $INVENTORY --configdir /etc/kolla reconfigure -t trove

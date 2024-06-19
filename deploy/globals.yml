@@ -143,7 +143,7 @@ network_interface: "eth1"
 #swift_replication_interface: "{{ swift_storage_interface }}"
 #tunnel_interface: "{{ network_interface }}"
 #dns_interface: "{{ network_interface }}"
-octavia_network_interface: "eth3.1005"
+octavia_network_interface: "eth3.11"
 
 # Configure the address family (AF) per network.
 # Valid options are [ ipv4, ipv6 ]
@@ -874,7 +874,7 @@ octavia_auto_configure: "yes"
 octavia_amp_network:
   name: lb-mgmt-net
   provider_network_type: vlan
-  provider_segmentation_id: 1005
+  provider_segmentation_id: 11
   provider_physical_network: physnet1
   external: false
   shared: false
@@ -885,7 +885,6 @@ octavia_amp_network:
     allocation_pool_end: "10.10.0.200"
     gateway_ip: "10.10.0.1"
     enable_dhcp: yes
-
 
 # Octavia management network subnet CIDR.
 #octavia_amp_network_cidr: 10.1.0.0/24

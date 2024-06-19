@@ -78,6 +78,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <!-- Añadido por Pablo. Archivos necesarios para configurar Swift -->
     <filetree seq="on_boot" root="/root/">conf/admin/rings-swift</filetree>
 
+    <!-- Añadido por Pablo. Archivos necesarios para configurar Trove -->
+    <filetree seq="on_boot" root="/root/">conf/admin/conf-trove</filetree>
+
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
         apt-get update
@@ -128,7 +131,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
         <!-- Añadido Por Pablo. Habilitar Octavia-->
         pip install python-octaviaclient
-        sed -i 's/#octavia_network_interface:.*/octavia_network_interface: "eth3.1005"/' /etc/kolla/globals.yml
+        sed -i 's/#octavia_network_interface:.*/octavia_network_interface: "eth3.11"/' /etc/kolla/globals.yml
         sed -i 's/#enable_octavia:.*/enable_octavia: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_redis:.*/enable_redis: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_horizon_octavia:.*/enable_horizon_octavia: "{{ enable_octavia | bool }}"/' /etc/kolla/globals.yml
@@ -138,7 +141,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     s/#octavia_amp_network:/octavia_amp_network:/g
   }
   /#    enable_dhcp: yes/{
-    s/#    enable_dhcp: yes/octavia_amp_network:\n            name: lb-mgmt-net\n            provider_network_type: vlan\n            provider_segmentation_id: 1005\n            provider_physical_network: physnet1\n            external: false\n            shared: false\n            subnet:\n              name: lb-mgmt-subnet\n              cidr: "10.10.0.0\/24"\n              allocation_pool_start: "10.10.0.100"\n              allocation_pool_end: "10.10.0.200"\n              gateway_ip: "10.10.0.1"\n              enable_dhcp: yes\n/g
+    s/#    enable_dhcp: yes/octavia_amp_network:\n            name: lb-mgmt-net\n            provider_network_type: vlan\n            provider_segmentation_id: 11\n            provider_physical_network: physnet1\n            external: false\n            shared: false\n            subnet:\n              name: lb-mgmt-subnet\n              cidr: "10.10.0.0\/24"\n              allocation_pool_start: "10.10.0.100"\n              allocation_pool_end: "10.10.0.200"\n              gateway_ip: "10.10.0.1"\n              enable_dhcp: yes\n/g
   }
 }' /etc/kolla/globals.yml
         sed -i '0,/octavia_amp_network:/{s/octavia_amp_network:.*/#octavia_amp_network:/}' /etc/kolla/globals.yml
@@ -186,6 +189,11 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i 's/#enable_grafana:.*/enable_grafana: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_prometheus:.*/enable_prometheus: "yes"/' /etc/kolla/globals.yml
 
+        <!-- Añadido Por Pablo. Habilitar Trove-->
+        pip install python-troveclient
+        sed -i 's/#enable_trove:.*/enable_trove: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_horizon_trove:.*/enable_horizon_trove: "{{ enable_trove | bool }}"/' /etc/kolla/globals.yml
+
         <!-- Añadido por Pablo. Otras utilidades-->
         apt-get install nano
         
@@ -215,6 +223,18 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         rm /tmp/images/amphora-x64-haproxy.qcow2
         
     </exec>
+
+    <exec seq="load-trove" type="verbatim">
+        source /root/kolla/bin/activate
+        source /etc/kolla/admin-openrc.sh
+
+        wget -P /tmp/images https://tarballs.opendev.org/openstack/trove/images/trove-master-guest-ubuntu-jammy.qcow2
+        openstack image create trove-ubuntu --disk-format qcow2 --container-format bare --public --tag trove --tag mysql --file /tmp/images/trove-master-guest-ubuntu-jammy.qcow2
+        rm /tmp/images/trove-master-guest-ubuntu-jammy.qcow2
+        openstack datastore version create 5.7.29 mysql mysql "" --image-tags trove,mysql --active --default --version-number 5.7.29
+
+    </exec>
+
 
     <exec seq="load-img" type="verbatim">
 
@@ -390,10 +410,15 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         #systemd-resolve --set-dns=8.8.8.8 --interface=eth1
 	resolvectl dns 2 1.1.1.1
 
-        <!-- Añadido por Pablo. Documentacion: https://access.redhat.com/documentation/es-es/red_hat_enterprise_linux/7/html/networking_guide/sec-configure_802_1q_vlan_tagging_using_the_command_line-->
-        ip link add link eth3 name eth3.1005 type vlan id 1005
-        ip link set dev eth3.1005 up
-        ip addr add 10.10.0.0/24 dev eth3.1005
+        <!-- Añadido por Pablo. Crear octavia-mgmt-nw. Documentacion: https://access.redhat.com/documentation/es-es/red_hat_enterprise_linux/7/html/networking_guide/sec-configure_802_1q_vlan_tagging_using_the_command_line-->
+        ip link add link eth3 name eth3.11 type vlan id 11
+        ip link set dev eth3.11 up
+        ip addr add 10.10.0.0/24 dev eth3.11
+
+        <!-- Añadido por Pablo. Crear trove-mgmt-nw. Documentacion: https://access.redhat.com/documentation/es-es/red_hat_enterprise_linux/7/html/networking_guide/sec-configure_802_1q_vlan_tagging_using_the_command_line-->
+        ip link add link eth3 name eth3.1002 type vlan id 1002
+        ip link set dev eth3.1002 up
+        ip addr add 10.10.0.0/24 dev eth3.1002
 
         <!-- Añadido por Pablo. Crear Volume Group para Cinder -->
         free_device=$(losetup -f)
@@ -523,6 +548,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/node/swd2
 
         mount -a
+        
     </exec>
 
     <!-- Copy ntp config and restart service -->
@@ -604,6 +630,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/node/swd2
 
         mount -a
+
     </exec>
 
     <!-- Copy ntp config and restart service -->
@@ -685,6 +712,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/node/swd2
 
         mount -a
+        
     </exec>
 
     <!-- Copy ntp config and restart service -->

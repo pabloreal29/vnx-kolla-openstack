@@ -1,0 +1,26 @@
+#!/bin/bash
+
+source /root/kolla/bin/activate
+source /etc/kolla/admin-openrc.sh
+
+TROVE_MGMT_NET_ID=$(openstack network create --provider-physical-network physnet1 --provider-network-type vlan --provider-segment 12 trove-mgmt-net -c id -f value)
+openstack subnet create --subnet-range 10.10.0.0/24 --allocation-pool start=10.10.0.100,end=10.10.0.200 --network trove-mgmt-net trove-mgmt-subnet	
+openstack router create trove-management-router
+openstack router set trove-management-router --external-gateway ExtNet
+openstack router add subnet trove-management-router trove-mgmt-subnet
+
+# Crear fichero trove-openrc.sh
+TROVE_KEYSTONE_PASSWORD=$(grep trove_keystone_password /etc/kolla/passwords.yml | awk '{print $2}')
+sed -i "s/export OS_USERNAME=.*/export OS_USERNAME='trove'/" /etc/kolla/trove-openrc.sh
+sed -i "s/export OS_PASSWORD=.*/export OS_PASSWORD='$TROVE_KEYSTONE_PASSWORD'/" /etc/kolla/trove-openrc.sh
+
+# Es necesario crear el grupo de seguridad y el par de claves desde el usuario trove
+source /etc/kolla/trove-openrc.sh
+openstack keypair create trove-ssh-key
+TROVE_SEC_GROUP_ID=$(openstack security group create trove-sec-grp -c id -f value)
+openstack security group rule create --proto icmp --dst-port 0  trove-sec-grp 
+openstack security group rule create --proto tcp  --dst-port 22 trove-sec-grp
+
+# Crear fichero de configuracion trove.conf
+mkdir -p /etc/kolla/config/
+echo -e "[DEFAULT]\nmanagement_networks = $TROVE_MGMT_NET_ID\nnova_keypair = trove-ssh-key\nmanagement_security_groups = $TROVE_SEC_GROUP_ID" > /etc/kolla/config/trove.conf

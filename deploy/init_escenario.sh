@@ -15,6 +15,7 @@ source deploy/habilitar-nat.sh
 #Cargar imagenes y crear red externa
 OSTACKLAB=openstack_kolla_ansible_2024_1.xml
 sudo vnx -f $OSTACKLAB -x create-extnet
+sudo vnx -f $OSTACKLAB -x load-trove
 sudo vnx -f $OSTACKLAB -x load-octavia
 sudo vnx -f $OSTACKLAB -x load-img
 
