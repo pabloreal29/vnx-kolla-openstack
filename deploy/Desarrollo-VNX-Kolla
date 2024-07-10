@@ -6,7 +6,7 @@ COMENTARIOS DE DAVID:
 
 TAREAS ACTUALES:
 	- OK! Buscar donde se almacenan los datos de Ceilometer (es decir, donde Gnocchi almacena estos datos de telemetría).
-		- Ver si se puede conectar Kolla con Grafana para analizar estos datos.
+		- Ver si se puede conectar Kolla con  para analizar estos datos.
 	- Terminar de configurar Cinder (almacenamiento de bloques).
 	- OK! Configurar Swift (almacenamiento de objetos).
 	- Diseñar una serie de pruebas con un uso de CPU concreto (ej: 40%, 50%, 60%) para ver cuándo se escala.
@@ -17,8 +17,47 @@ TAREAS ACTUALES:
 	- Cinder: ver si podemos attachear correctamente los volumenes a las instancias.
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CONGELAR IMAGENES
 
-COMANDOS IMPORTANTES
+Se ha desplegado el escenario de kolla y se han realizado las acciones de crear la red externa, importar imágenes, importar configuración de Octavia y Trove y crear el usuario myuser.
+Todo esto antes de congelar las imágenes.
+
+Se despliega con: sudo vnx -f $OSTACKLAB_2 -v --create
+
+	- compute1-3: [FAILED] Failed to start Set Up Additional Binary Formats. See 'systemctl status systemd-binfmt.service' for details.
+	
+	root@compute1:~# systemctl status systemd-binfmt.service
+× systemd-binfmt.service - Set Up Additional Binary Formats
+     Loaded: loaded (/lib/systemd/system/systemd-binfmt.service; static)
+     Active: failed (Result: exit-code) since Fri 2024-07-05 11:50:00 UTC; 56s ago
+       Docs: man:systemd-binfmt.service(8)
+             man:binfmt.d(5)
+             https://www.kernel.org/doc/html/latest/admin-guide/binfmt-misc.html
+             https://www.freedesktop.org/wiki/Software/systemd/APIFileSystems
+    Process: 483 ExecStart=/lib/systemd/systemd-binfmt (code=exited, status=1/FAILURE)
+   Main PID: 483 (code=exited, status=1/FAILURE)
+        CPU: 2ms
+
+jul 05 11:50:00 compute1 systemd[1]: Starting Set Up Additional Binary Formats...
+jul 05 11:50:00 compute1 systemd-binfmt[483]: Failed to check if /proc/sys/fs/binfmt_misc is mounted: Host is down
+jul 05 11:50:00 compute1 systemd[1]: systemd-binfmt.service: Main process exited, code=exited, status=1/FAILURE
+jul 05 11:50:00 compute1 systemd[1]: systemd-binfmt.service: Failed with result 'exit-code'.
+jul 05 11:50:00 compute1 systemd[1]: Failed to start Set Up Additional Binary Formats.
+
+	- network: no aparecen las interfaces de red.
+		   He probado a comentar esto y sale eth2 pero no eth1: <!-- <forwarding type="ip" />
+    									<forwarding type="ipv6" /> -->
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+TERRAFORM
+
+	- Lo he instalado siguiendo la guia de: https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
+	- Probar: terraform init desde la carpeta /root/shared en el nodo tf-node, una vez esté desplegado Kolla
+	- Para crear recursos: https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+GNOCCHI
 
 gnocchi metric list --sort-column name --sort-ascending
 gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c7-58e9b48a890a --start 2024-05-30T13:30:00+02:00
@@ -28,6 +67,27 @@ gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c
 183333333.33333397
 
 800000000.0
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ACCEDER A TROVE INSTANCE
+
+mysql -h 10.0.10.159 -u spatel -p
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+PAQUETE BCRYPT PROMETHEUS
+
+Collecting bcrypt==4.0.1
+  Downloading bcrypt-4.0.1-cp36-abi3-manylinux_2_28_x86_64.whl (593 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 593.7/593.7 KB 12.6 MB/s eta 0:00:00
+Installing collected packages: bcrypt
+  Attempting uninstall: bcrypt
+    Found existing installation: bcrypt 3.2.0
+    Not uninstalling bcrypt at /usr/lib/python3/dist-packages, outside environment /usr
+    Can't uninstall 'bcrypt'. No files were found to uninstall.
+Successfully installed bcrypt-4.0.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -65,7 +125,7 @@ GRAFANA DASHBOARD
 	Cambiar contraseña: https://opendev.org/openstack/kolla-ansible/src/branch/stable/2024.1/doc/source/admin/password-rotation.rst
 	
 	user: admin
-	password: dentro del nodo controller, en /etc/kolla/grafana/grafana.ini, el atributo admin_password 
+	password: dentro del nodo controller, en /etc/kolla/grafana/grafana.ini, el atributo admin_password. Ahora es: grafana
 	
 	Dashboards -> Create Dashboard -> Add Visualisation -> Select Data Source -> Prometheus
 
@@ -174,6 +234,7 @@ OPENSTACK 2024.1
 
 AUTOESCALADO
 	- He añadido los archivos pipeline.yaml y polling.yaml para actualizar la configuración de Ceilometer.
+	- IMPORTANTE: Cambiar las colas de RabbitMQ a non-durable, poniendo a falsa la propiedad amqp_durable_queues dentro de ceilometer.conf. Si no, no se pueden obtener las métricas
 	
 	- SITUACIÓN ACTUAL: Si hago stress -c $(nproc), la alarma salta pero no se genera una nueva instancia.
 	- Sin embargo, se me ha generado una nueva instancia haciendo una petición POST a la URL de scaleout_policy. REVISAR POSIBLES COMANDOS:
@@ -363,9 +424,16 @@ DOCUMENTACION
 - Trove
 	https://www.linkedin.com/pulse/trove-database-service-openstack-satish-patel-ib5re?utm_source=share&utm_medium=member_android&utm_campaign=share_via
 	
-
+- Glance
+	https://learning.oreilly.com/library/view/deploying-openstack/9781449311223/ch03.html#Architecture_1
+	
+- Terraform
+	https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
+	https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs
+	https://terraform-infraestructura.readthedocs.io/es/latest/comandos/#comando-plan
+	https://terraform-infraestructura.readthedocs.io/es/latest/comandos/#comando-apply
+	
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
-
 
 
 PROBLEMAS ya SOLUCIONADOS
@@ -393,8 +461,11 @@ Errores obtenidos:
 5. Error deploy kolla:
 Nodo Controlador: failed: [10.0.0.21]: File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 532, in send\\n    conn = self._get_connection(request, verify, proxies=proxies, cert=cert)\\n  File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 400, in _get_connection\\n    conn = self.poolmanager.connection_from_host(\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 304, in connection_from_host\\n    return self.connection_from_context(request_context)\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 326, in connection_from_context\\n    raise URLSchemeUnknown(scheme)\\nurllib3.exceptions.URLSchemeUnknown: Not supported URL scheme http+docker
 
-- Solucionado: Han sacado una nueva versión que no da errores. Dejo por aquí la solución de David, por si vuelve a pasar.
+- Solucionado: Han sacado una nueva versión del paquete requests que no da errores. Dejo por aquí la solución de David, por si vuelve a pasar. Se pone despues del bootstrap-servers:
 	for i in controller network compute1 compute2 compute3; do ssh $i pip install --force-reinstall requests==2.31.0; done
+	
+5.1 Lo mismo pero ahora con el paquete bcrypt:
+	for i in controller network compute1 compute2 compute3; do ssh $i pip install --force-reinstall --user bcrypt==4.0.1; done
 	
 6. Swift: 
 	6.1 Error Swift Puertos Rings. Solucionado, era un problema de los puertos al crear los anillos, que todos estaban en 6000:
@@ -442,6 +513,11 @@ Ejecutar: systemctl restart kolla-glance_api-container.service
 3.1 Comprobar si el servidor está bien lanzado ejecutando desde otro nodo (no admin): curl -I http://10.0.0.1:8000/servers_image.qcow2
 
 MÁS ALTERNATIVAS: Swift y Ceph no se habilitan correctamente en la configuración. Cinder necesita de una imagen de Glance, no sirve.
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+CONGELAR IMAGENES NODOS
+
+https://github.com/giros-dit/vnx-kubespray/blob/develop/README-create-k8s_lab.md
 
 -------------------------------------------------------------------------------------------------------------------------------------------------
 CONFIGURACION NFS

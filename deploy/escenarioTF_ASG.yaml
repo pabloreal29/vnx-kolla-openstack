@@ -287,6 +287,29 @@ resources:
       user_data: |
         #!/bin/bash
         systemctl start mongod
+  
+  bbdd_trove:
+    type: OS::Trove::Instance
+    properties:
+      flavor: {get_param: bbdd_flavor}
+      size: 5
+      networks:
+      - network: {get_resource: net2}
+      - network: trove-mgmt-net
+      databases: [name: test]
+      datastore_version: 5.7.29
+      datastore_type: mysql
+      users: [{ name: trove, password: trove, databases: [test] }]
+  
+  port_trove:
+    type: OS::Neutron::Port
+    properties:
+      network: {get_resource: net2}
+      name: port_trove
+      security_groups: 
+        - {get_resource: security_group}
+      fixed_ips: 
+        - subnet: {get_resource: subnet2}
 
   # my_volume:
   #   type: OS::Cinder::Volume

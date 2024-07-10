@@ -288,7 +288,7 @@ resources:
     type: OS::Nova::Server
     properties:
       name: administrador
-      image: focal-admin-vnx
+      image: focal-administrador-vnx
       flavor: m1.smaller
       networks:
       - network: {get_resource: net1}

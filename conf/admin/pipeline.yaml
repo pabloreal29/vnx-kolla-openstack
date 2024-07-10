@@ -8,4 +8,4 @@ sources:
 sinks:
     - name: meter_sink
       publishers:
-          - gnocchi://?archive_policy=high
+          - gnocchi://?archive_policy=medium

@@ -13,10 +13,14 @@ kolla-ansible octavia-certificates
 
 kolla-ansible -i $INVENTORY --configdir /etc/kolla bootstrap-servers
 
+# Añadido por Pablo. Cambiar version del paquete bcrypt para evitar errores en el despliegue de Prometheus
+for i in controller network compute1 compute2 compute3; do ssh $i pip install --force-reinstall --user bcrypt==4.0.1; done
+
 # Añadido por Pablo. Configuracion de los anillos de Swift
 ./rings-swift
 
 kolla-ansible -i $INVENTORY --configdir /etc/kolla prechecks
+
 kolla-ansible -i $INVENTORY --configdir /etc/kolla deploy
 kolla-ansible post-deploy
 

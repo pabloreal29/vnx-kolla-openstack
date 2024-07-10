@@ -5,12 +5,10 @@ source /etc/kolla/admin-openrc.sh
 
 TROVE_MGMT_NET_ID=$(openstack network create --provider-physical-network physnet1 --provider-network-type vlan --provider-segment 12 trove-mgmt-net -c id -f value)
 openstack subnet create --subnet-range 10.10.0.0/24 --allocation-pool start=10.10.0.100,end=10.10.0.200 --network trove-mgmt-net trove-mgmt-subnet	
-openstack router create trove-management-router
-openstack router set trove-management-router --external-gateway ExtNet
-openstack router add subnet trove-management-router trove-mgmt-subnet
 
 # Crear fichero trove-openrc.sh
 TROVE_KEYSTONE_PASSWORD=$(grep trove_keystone_password /etc/kolla/passwords.yml | awk '{print $2}')
+cp /etc/kolla/octavia-openrc.sh /etc/kolla/trove-openrc.sh
 sed -i "s/export OS_USERNAME=.*/export OS_USERNAME='trove'/" /etc/kolla/trove-openrc.sh
 sed -i "s/export OS_PASSWORD=.*/export OS_PASSWORD='$TROVE_KEYSTONE_PASSWORD'/" /etc/kolla/trove-openrc.sh
 

@@ -84,6 +84,11 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
     <exec seq="on_boot" type="verbatim">
         dhclient eth9
         apt-get update
+
+        <!-- Añadido por Pablo. Problemas con SSL en wget -->
+        apt install --only-upgrade openssl
+        apt-get install -y curl
+
         apt-get install -y iptables
         /usr/bin/vnx_config_nat eth1 eth9
 	sudo chown 644 /root/.ssh/id_rsa
@@ -96,11 +101,13 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 	#ssh -o StrictHostKeyChecking=accept-new root@network w
 	#ssh -o StrictHostKeyChecontrollercking=accept-new root@compute1 w
 	#ssh -o StrictHostKeyChecking=accept-new root@compute2 w
+
     </exec>
     <exec seq="config-admin1" type="verbatim">
+    <!-- Modificado por Pablo para añadir tf-node -->
 	for c in controller network compute1 compute2 compute3; do while ! $( nc -z $c 22 ); do sleep 1; done; ssh -o StrictHostKeyChecking=accept-new root@$c w; done
         for c in 10.0.0.11 10.0.0.21 10.0.0.31 10.0.0.32 10.0.0.33; do while ! $( nc -z $c 22 ); do sleep 1; done; ssh -o StrictHostKeyChecking=accept-new root@$c w; done
-	for c in controller network compute1 compute2 compute3; do apt updetcate; done
+	for c in controller network compute1 compute2 tf-node; do apt updetcate; done
         export DEBIAN_FRONTEND=noninteractive
         sudo apt update
         sudo apt install -y git python3-dev libffi-dev gcc libssl-dev python3-venv
@@ -160,6 +167,7 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         pip install gnocchiclient
         rm -rf /root/kolla/share/kolla-ansible/ansible/roles/ceilometer/templates/event_definitions.yaml.j2
         mv /tmp/event_definitions.yaml.j2 /root/kolla/share/kolla-ansible/ansible/roles/ceilometer/templates/event_definitions.yaml.j2
+        sed -i 's/^amqp_durable_queues.*/amqp_durable_queues = false/' /root/kolla/share/kolla-ansible/ansible/roles/ceilometer/templates/ceilometer.conf.j2
 
         mkdir -p /etc/kolla/config/ceilometer
         mv /tmp/pipeline.yaml /etc/kolla/config/ceilometer/pipeline.yaml
@@ -193,6 +201,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         pip install python-troveclient
         sed -i 's/#enable_trove:.*/enable_trove: "yes"/' /etc/kolla/globals.yml
         sed -i 's/#enable_horizon_trove:.*/enable_horizon_trove: "{{ enable_trove | bool }}"/' /etc/kolla/globals.yml
+
+        <!-- Añadido por Pablo. Cambiar contraseña del usuario admin en Keystone-->
+        sed -i 's/keystone_admin_password:.*/keystone_admin_password: xxxx/' /etc/kolla/passwords.yml
 
         <!-- Añadido por Pablo. Otras utilidades-->
         apt-get install nano
@@ -233,8 +244,16 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         rm /tmp/images/trove-master-guest-ubuntu-jammy.qcow2
         openstack datastore version create 5.7.29 mysql mysql "" --image-tags trove,mysql --active --default --version-number 5.7.29
 
+        openstack router create trove-management-router
+        openstack router set trove-management-router --external-gateway ExtNet
+        openstack router add subnet trove-management-router trove-mgmt-subnet
+
     </exec>
 
+    <exec seq="prueba-trove" type="verbatim">
+        wget -P /tmp/images https://tarballs.opendev.org/openstack/trove/images/trove-master-guest-ubuntu-jammy.qcow2
+        rm /tmp/images/trove-master-guest-ubuntu-jammy.qcow2
+    </exec>
 
     <exec seq="load-img" type="verbatim">
 
@@ -632,7 +651,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mount -a
 
     </exec>
-
     <!-- Copy ntp config and restart service -->
     <!-- Note: not used because ntp cannot be used inside a container. Clocks are supposed to be synchronized
          between the vms/containers and the host -->
@@ -712,7 +730,66 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         mkdir -p /srv/node/swd2
 
         mount -a
-        
+
+    </exec>
+
+    <!-- Añadido por Pablo. Nodo que gestiona la configuración de Terraform -->
+    <!-- Copy ntp config and restart service -->
+    <!-- Note: not used because ntp cannot be used inside a container. Clocks are supposed to be synchronized
+         between the vms/containers and the host -->
+    <!--filetree seq="on_boot" root="/etc/chrony/chrony.conf">conf/ntp/chrony-others.conf</filetree>
+    <exec seq="on_boot" type="verbatim">
+        service chrony restart
+    </exec-->
+  </vm>
+
+  <!--
+    ~~~
+    ~~~  T E R R A F O R M  N O D E
+    ~~~
+  -->
+  <vm name="tf-node" type="libvirt" subtype="kvm" os="linux" exec_mode="sdisk" arch="x86_64" vcpu="2">
+    <filesystem type="cow">/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2</filesystem>
+    <shareddir root="/root/shared">/home/pabloreal/vnx-kolla-openstack/conf/terraform</shareddir>
+    <mem>2G</mem>
+    <if id="1" net="MgmtNet">
+      <ipv4>10.0.0.41/24</ipv4>
+    </if>
+    <if id="2" net="TunnNet">
+      <ipv4>10.0.1.41/24</ipv4>
+    </if>
+    <if id="3" net="VlanNet">
+    </if>
+    <if id="4" net="ExtNet">
+    </if>
+    <!--if id="9" net="virbr0">
+      <ipv4>dhcp</ipv4>
+    </if-->
+    <route type="ipv4" gw="10.0.0.1">default</route>
+
+    <exec seq="on_boot" type="verbatim">
+        # Create /dev/net/tun device
+        #mkdir -p /dev/net/
+        #mknod -m 666 /dev/net/tun  c 10 200
+        # Change MgmtNet and TunnNet interfaces MTU
+        ifconfig eth1 mtu 1450
+        sed -i -e '/iface eth1 inet static/a \   mtu 1450' /etc/network/interfaces
+        ifconfig eth2 mtu 1450
+        sed -i -e '/iface eth2 inet static/a \   mtu 1450' /etc/network/interfaces
+        ifconfig eth3 mtu 1450
+        sed -i -e '/iface eth3 inet static/a \   mtu 1450' /etc/network/interfaces
+        #systemd-resolve --set-dns=8.8.8.8 --interface=eth1
+	resolvectl dns 2 1.1.1.1
+        #apt update
+	#apt install -y openvswitch-switch
+
+      <!-- Añadido por Pablo. Instalación de Terraform-->
+      apt-get update
+      wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
+      echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+      apt-get update
+      apt-get install -y terraform
+
     </exec>
 
     <!-- Copy ntp config and restart service -->

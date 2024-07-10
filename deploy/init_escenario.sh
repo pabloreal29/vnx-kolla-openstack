@@ -53,7 +53,11 @@ openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 openstack container create students-container
 openstack object create students-container --name studentsBBDD.json deploy/students.json
 
-# #Crear el stack con todos los elementos del escenario
+#Crear instancia de trove
+trove_net_id=$(openstack net show trove-mgmt-net -c id -f value)
+openstack database instance create my_db --flavor m1.large --size 5 --nic net-id=$net2_id --nic net-id=$trove_net_id --datastore mysql --datastore-version 5.7.29 --is-public --allowed-cidr 0.0.0.0/0 --locality affinity --database testdb --users spatel:mypassword 
+
+#Crear el stack con todos los elementos del escenario
 # openstack stack create -t deploy/escenarioTF_ASG.yaml my_stack
 
 # #Esperar a que se cree el router del escenario antes de asignarle el firewall 

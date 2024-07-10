@@ -105,3 +105,12 @@ ssh root@admin
 ```bash
 ./deploy-ostack
 ```
+
+### Parar el escenario y crear las imágenes
+
+```
+source ./create-vnx-images
+```
+
+Se ha desplegado el escenario de kolla y se han realizado las acciones de crear la red externa, importar imágenes, importar configuración de Octavia y Trove y crear el usuario myuser.
+Todo esto antes de congelar las imágenes.

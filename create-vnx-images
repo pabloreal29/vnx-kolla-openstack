@@ -1,0 +1,45 @@
+#!/bin/bash
+# Ejecutar: source ./create-vnx-images
+
+OSTACKLAB=openstack_kolla_ansible_2024_1.xml
+sudo vnx -f $OSTACKLAB -v --shutdown
+sudo rm -rf filesystems && mkdir -p filesystems && cd filesystems
+VNXDIR=$( vnx -V | grep "VNX dir" | cut -d "=" -f 2 | sed -e "s,~,${HOME}," )
+
+# controller image
+cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-controller.qcow2
+cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/controller/fs/root_cow_fs tmp-diff-controller.qcow2
+qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-controller.qcow2 tmp-diff-controller.qcow2
+qemu-img commit tmp-diff-controller.qcow2
+rm tmp-diff-controller.qcow2
+
+# network image
+cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-network.qcow2
+cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/network/fs/root_cow_fs tmp-diff-network.qcow2
+qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-network.qcow2 tmp-diff-network.qcow2
+qemu-img commit tmp-diff-network.qcow2
+rm tmp-diff-network.qcow2
+
+# compute1 image
+cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute1.qcow2
+cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/compute1/fs/root_cow_fs tmp-diff-compute1.qcow2
+qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute1.qcow2 tmp-diff-compute1.qcow2
+qemu-img commit tmp-diff-compute1.qcow2
+rm tmp-diff-compute1.qcow2
+
+# compute2 image
+cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute2.qcow2
+cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/compute2/fs/root_cow_fs tmp-diff-compute2.qcow2
+qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute2.qcow2 tmp-diff-compute2.qcow2
+qemu-img commit tmp-diff-compute2.qcow2
+rm tmp-diff-compute2.qcow2
+
+# compute3 image
+cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute3.qcow2
+cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/compute3/fs/root_cow_fs tmp-diff-compute3.qcow2
+qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute3.qcow2 tmp-diff-compute3.qcow2
+qemu-img commit tmp-diff-compute3.qcow2
+rm tmp-diff-compute3.qcow2
+
+cd ..
+sudo vnx -f $OSTACKLAB -v --destroy
