@@ -16,8 +16,15 @@ TAREAS ACTUALES:
 	- Ver implementación Grafana.
 	- Cinder: ver si podemos attachear correctamente los volumenes a las instancias.
 	
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	
 PROBLEMAS GITHUB
-	- Si N commits no se pueden subir porque se han incluido archivos que pesan demasiado
+	- Si N commits no se pueden subir porque se han incluido archivos que pesan demasiado y queremos mantener los cambios realizados en local, realizar lo siguiente:
+		Eliminar los archivos (para próximos commits añadir su carpeta a .gitignore)
+		git reset HEAD~N, donde N es el número de commits pendientes de completar
+		git add .
+		git commit -m "Recomitiendo cambios tras reset"
+		git push origin main --force
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CONGELAR IMAGENES
