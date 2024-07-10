@@ -41,9 +41,9 @@ chmod 700 ./tmp/keys/s2
 chmod 700 ./tmp/keys/s3
 
 #Importar imagenes de las VMs
-openstack image create focal-servers-vnx --file /home/pabloreal/openstack-images/asg_servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-openstack image create focal-bbdd-vnx --file /home/pabloreal/openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-openstack image create focal-administrador-vnx --file /home/pabloreal/openstack-images/administrador_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-servers-vnx --file openstack-images/asg_servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-bbdd-vnx --file openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-administrador-vnx --file openstack-images/administrador_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 
 #Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
 #Nota: he reducido las vcpus y la ram respecto al trabajo de cnvr

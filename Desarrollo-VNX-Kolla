@@ -15,6 +15,9 @@ TAREAS ACTUALES:
 	- Ver despliegue autoescalado con Terraform.
 	- Ver implementación Grafana.
 	- Cinder: ver si podemos attachear correctamente los volumenes a las instancias.
+	
+PROBLEMAS GITHUB
+	- Si N commits no se pueden subir porque se han incluido archivos que pesan demasiado
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CONGELAR IMAGENES

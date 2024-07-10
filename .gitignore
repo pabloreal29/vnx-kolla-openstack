@@ -1,6 +1,6 @@
 # Do not stage Kolla venv
 .kolla-venv
+
+# Do not stage images from nodes (.qcow2)
 filesystems/
-filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute1.qcow2
-filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-controller.qcow2
-filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-network.qcow2
+openstack-images/
