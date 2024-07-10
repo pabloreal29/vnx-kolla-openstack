@@ -1,0 +1,582 @@
+Importante, utilizar la rama antelope.
+
+COMENTARIOS DE DAVID:
+	- Del escenario de CNVR funciona todo salvo el firewall, pero David ha dicho que por el momento pase.
+	- Hay otro chico con un TFG en el que utiliza Terraform en vez de Heat para crear todos los elementos de la red.
+
+TAREAS ACTUALES:
+	- OK! Buscar donde se almacenan los datos de Ceilometer (es decir, donde Gnocchi almacena estos datos de telemetría).
+		- Ver si se puede conectar Kolla con  para analizar estos datos.
+	- Terminar de configurar Cinder (almacenamiento de bloques).
+	- OK! Configurar Swift (almacenamiento de objetos).
+	- Diseñar una serie de pruebas con un uso de CPU concreto (ej: 40%, 50%, 60%) para ver cuándo se escala.
+	- OK! Mirar documentación Skyline (nueva interfaz Horizon) y ver si se puede implementar en Kolla. Intercambiar puertos de Skyline y Horizon.
+	
+	- Ver despliegue autoescalado con Terraform.
+	- Ver implementación Grafana.
+	- Cinder: ver si podemos attachear correctamente los volumenes a las instancias.
+	
+PROBLEMAS GITHUB
+	- Si N commits no se pueden subir porque se han incluido archivos que pesan demasiado
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CONGELAR IMAGENES
+
+Se ha desplegado el escenario de kolla y se han realizado las acciones de crear la red externa, importar imágenes, importar configuración de Octavia y Trove y crear el usuario myuser.
+Todo esto antes de congelar las imágenes.
+
+Se despliega con: sudo vnx -f $OSTACKLAB_2 -v --create
+
+	- compute1-3: [FAILED] Failed to start Set Up Additional Binary Formats. See 'systemctl status systemd-binfmt.service' for details.
+	
+	root@compute1:~# systemctl status systemd-binfmt.service
+× systemd-binfmt.service - Set Up Additional Binary Formats
+     Loaded: loaded (/lib/systemd/system/systemd-binfmt.service; static)
+     Active: failed (Result: exit-code) since Fri 2024-07-05 11:50:00 UTC; 56s ago
+       Docs: man:systemd-binfmt.service(8)
+             man:binfmt.d(5)
+             https://www.kernel.org/doc/html/latest/admin-guide/binfmt-misc.html
+             https://www.freedesktop.org/wiki/Software/systemd/APIFileSystems
+    Process: 483 ExecStart=/lib/systemd/systemd-binfmt (code=exited, status=1/FAILURE)
+   Main PID: 483 (code=exited, status=1/FAILURE)
+        CPU: 2ms
+
+jul 05 11:50:00 compute1 systemd[1]: Starting Set Up Additional Binary Formats...
+jul 05 11:50:00 compute1 systemd-binfmt[483]: Failed to check if /proc/sys/fs/binfmt_misc is mounted: Host is down
+jul 05 11:50:00 compute1 systemd[1]: systemd-binfmt.service: Main process exited, code=exited, status=1/FAILURE
+jul 05 11:50:00 compute1 systemd[1]: systemd-binfmt.service: Failed with result 'exit-code'.
+jul 05 11:50:00 compute1 systemd[1]: Failed to start Set Up Additional Binary Formats.
+
+	- network: no aparecen las interfaces de red.
+		   He probado a comentar esto y sale eth2 pero no eth1: <!-- <forwarding type="ip" />
+    									<forwarding type="ipv6" /> -->
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+TERRAFORM
+
+	- Lo he instalado siguiendo la guia de: https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
+	- Probar: terraform init desde la carpeta /root/shared en el nodo tf-node, una vez esté desplegado Kolla
+	- Para crear recursos: https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+GNOCCHI
+
+gnocchi metric list --sort-column name --sort-ascending
+gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c7-58e9b48a890a --start 2024-05-30T13:30:00+02:00
+
+386870000000.0
+386870000000.0
+183333333.33333397
+
+800000000.0
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+ACCEDER A TROVE INSTANCE
+
+mysql -h 10.0.10.159 -u spatel -p
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+PAQUETE BCRYPT PROMETHEUS
+
+Collecting bcrypt==4.0.1
+  Downloading bcrypt-4.0.1-cp36-abi3-manylinux_2_28_x86_64.whl (593 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 593.7/593.7 KB 12.6 MB/s eta 0:00:00
+Installing collected packages: bcrypt
+  Attempting uninstall: bcrypt
+    Found existing installation: bcrypt 3.2.0
+    Not uninstalling bcrypt at /usr/lib/python3/dist-packages, outside environment /usr
+    Can't uninstall 'bcrypt'. No files were found to uninstall.
+Successfully installed bcrypt-4.0.1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+TROVE
+	Pasos en admin:
+		1. source /root/kolla/bin/activate
+       		2. source /etc/kolla/admin-openrc.sh
+		3. openstack network create --provider-physical-network physnet1 --provider-network-type vlan --provider-segment 12 trove-mgmt-net
+		4. openstack subnet create --subnet-range 10.10.0.0/24 --allocation-pool start=10.10.0.100,end=10.10.0.200 --network trove-mgmt-net trove-mgmt-subnet	
+			Probar quitando la opcion --gateway 10.10.0.1 para que no necesite router
+		
+		5. openstack security group create trove-sec-grp 
+		6. openstack security group rule create --proto icmp --dst-port 0  trove-sec-grp 
+        	7. openstack security group rule create --proto tcp  --dst-port 22 trove-sec-grp 
+		
+		
+		5. nano /etc/kolla/config/trove.conf:
+		
+		[DEFAULT]
+		management_networks = 90a23079-26b0-4291-9a9d-35313440e261
+		nova_keypair = trove-ssh-key
+		management_security_groups = e04e996c-6434-4e35-8787-1ad1b89609c7
+		
+		6. kolla-ansible -i $INVENTORY --configdir /etc/kolla reconfigure -t trove
+
+
+	Situacion Actual:
+		trove.common.exception.TroveError: Failed to create server for instance 11c48848-7464-47c2-abab-afdb72794a52 Invalid key_name provided.
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+GRAFANA DASHBOARD
+	
+	Cambiar contraseña: https://opendev.org/openstack/kolla-ansible/src/branch/stable/2024.1/doc/source/admin/password-rotation.rst
+	
+	user: admin
+	password: dentro del nodo controller, en /etc/kolla/grafana/grafana.ini, el atributo admin_password. Ahora es: grafana
+	
+	Dashboards -> Create Dashboard -> Add Visualisation -> Select Data Source -> Prometheus
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+MODIFICACION ESCENARIO CNVR
+	Utilizar el servidor de administracion como nfs-kernel-server
+	Los servidores del grupo de autoescalado son nfs-common y acceden a la memoria compartida en /mnt/shared_volume
+	Fijamos la IP de admin en Net1 (10.1.1.94) ya que es necesaria en la configuración de los servidores de autoescalado para que se conecten a ella.
+
+	1. Obtener el ID del Volumen de Cinder:
+
+	Puedes obtener el ID del volumen de Cinder creado utilizando la CLI de OpenStack o el panel de control de Horizon.
+	Usando la CLI de OpenStack:
+		openstack volume list
+
+	Esto te proporcionará una lista de todos los volúmenes de Cinder en tu entorno OpenStack junto con sus IDs. Busca el ID del volumen que acabas de crear.
+	2. Crear un Recurso de Intercambio NFS en el Volumen de Cinder:
+
+	Dado que no hay un recurso de intercambio NFS directamente en Heat, deberás configurar manualmente el recurso de intercambio NFS en el volumen de Cinder. Esto generalmente implica configurar un servidor que exporte el sistema de archivos del volumen de Cinder a través de NFS.
+	Crear la carpeta compartida:
+		mkdir /mnt/shared_volume
+
+	Instalar el paquete NFS en un servidor:
+		apt-get update
+		apt-get install nfs-kernel-server
+
+	Editar el archivo /etc/exports:
+	Añade una línea al final del archivo /etc/exports que especifique el directorio que deseas compartir y las opciones de acceso. Por ejemplo:
+		/mnt/shared_volume *(rw,sync,no_root_squash)
+
+	Esto comparte el directorio /mnt/shared_volume con permisos de lectura y escritura para cualquier cliente NFS.
+
+	Reiniciar el Servicio NFS:
+	    systemctl restart nfs-kernel-server
+
+	3. Configurar el Servidor para Montar el Recurso NFS:
+
+	Una vez que hayas configurado el servidor NFS, necesitas configurar los servidores de tu grupo de autoescalado para que monten el recurso NFS.
+	En cada servidor del Grupo de Autoescalado:
+
+	    Instalar el paquete NFS:
+		apt-get install nfs-common
+
+	Crear un directorio de montaje:
+		mkdir /mnt/shared_volume
+
+	Montar el recurso NFS:
+		mount 10.1.1.94:/mnt/shared_volume /mnt/shared_volume
+
+	Donde <NFS_server_IP>:10.1.1.94 es la dirección IP del servidor NFS configurado anteriormente.
+
+	Hacer el montaje persistente:
+	Para asegurarte de que el recurso NFS se monte automáticamente en el arranque, añade una entrada en el archivo /etc/fstab:
+
+	ruby
+
+	    10.1.1.94:/mnt/shared_volume /mnt/shared_volume nfs defaults 0 0
+
+	Una vez completados estos pasos, el recurso de intercambio NFS en el volumen de Cinder estará configurado y los servidores en tu grupo de autoescalado podrán acceder a él y compartir archivos a través de NFS.
+	
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+PETICIONES CURL
+
+1. Obtener token:
+
+pabloreal@giros21:~/vnx-kolla-openstack$ curl -i -X POST http://10.0.0.250:5000/v3/auth/tokens -H "Content-Type: application/json" -d '{
+    "auth": {
+        "identity": {
+            "methods": ["password"],
+            "password": {
+                "user": {
+                    "name": "admin",
+                    "domain": { "name": "Default" },
+                    "password": "JvN3pE6YP2isfeWH3gjQOB9dmTZEY99XT1gk3ykC"
+                }
+            }
+        },
+        "scope": {
+            "project": {
+                "name": "admin",
+                "domain": { "name": "Default" }
+            }
+        }
+    }
+}'
+
+El token es lo que aparece después de x-subject-token
+
+2. Realizar la petición:
+pabloreal@giros21:~/vnx-kolla-openstack$ curl -i -X PUT http://10.0.0.250:8080/v1/AUTH_$PROJECT_ID/mycontainer -H "X-Auth-Token: $TOKEN"
+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------	
+OPENSTACK 2024.1
+
+	- Se necesita una version de ansible-core de 2.15 o 2.16 - ERROR: Ansible version should be between 2.15 and 2.16. Current version is 2.14.16 which is not supported
+	- Octavia vuelve a fallar con el error de No Host was found. 
+		- Creo que tiene que ver con la RAM del nodo controller, se ha aumentado a 6GB. Revisar uso de RAM con el comando: vmstat -s -S M
+		- También he aumentado la RAM de network y compute1-3 a 3GB.
+	- Ahora da problemas la imagen de amphora. Creo que es porque se ha construido con una version anterior de Octavia.
+		- Hay que crear una nueva imagen de amphora para OpenStack 2024.1. Hecho, nueva imagen en: /home/pabloreal/prueba-octavia/octavia/diskimage-create/amphora-x64-haproxy.qcow2
+	- Todo solucionado!
+
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+AUTOESCALADO
+	- He añadido los archivos pipeline.yaml y polling.yaml para actualizar la configuración de Ceilometer.
+	- IMPORTANTE: Cambiar las colas de RabbitMQ a non-durable, poniendo a falsa la propiedad amqp_durable_queues dentro de ceilometer.conf. Si no, no se pueden obtener las métricas
+	
+	- SITUACIÓN ACTUAL: Si hago stress -c $(nproc), la alarma salta pero no se genera una nueva instancia.
+	- Sin embargo, se me ha generado una nueva instancia haciendo una petición POST a la URL de scaleout_policy. REVISAR POSIBLES COMANDOS:
+		
+	pabloreal@giros21:~/vnx-kolla-openstack$ openstack project list
+	+----------------------------------+------------------------------------------------------------------+
+	| ID                               | Name                                                             |
+	+----------------------------------+------------------------------------------------------------------+
+	| d13635f22cbf4664b2f949948fe9951e | e8f995fa647b460f97bfd13ec9f338b7-6da493a9-b0bb-43bc-bb6a-00fd88d |
+	| e8f995fa647b460f97bfd13ec9f338b7 | admin                                                            |
+	| fd813f37e59549a095a53e0d547d7ad3 | service                                                          |
+	+----------------------------------+------------------------------------------------------------------+
+	
+	pabloreal@giros21:~/vnx-kolla-openstack$ openstack endpoint list
+	+----------------------------------+-----------+--------------+----------------+---------+-----------+-----------------------------------------+
+	| ID                               | Region    | Service Name | Service Type   | Enabled | Interface | URL                                     |
+	+----------------------------------+-----------+--------------+----------------+---------+-----------+-----------------------------------------+
+	| 742b4f9f22734ac684dda7bb2245a038 | RegionOne | heat         | orchestration  | True    | public    | http://10.0.0.250:8004/v1/%(tenant_id)s |
+	+----------------------------------+-----------+--------------+----------------+---------+-----------+-----------------------------------------+
+	
+	pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack event list example
+	2024-05-19 16:35:19Z [example]: CREATE_IN_PROGRESS  Stack CREATE started
+	2024-05-19 16:35:19Z [example.instance_group]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:25Z [example.instance_group]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:25Z [example.scaleout_policy]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:25Z [example.scalein_policy]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:26Z [example.scaleout_policy]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:26Z [example.scalein_policy]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:26Z [example.cpu_alarm_high]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:26Z [example.cpu_alarm_low]: CREATE_IN_PROGRESS  state changed
+	2024-05-19 16:35:27Z [example.cpu_alarm_low]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:27Z [example.cpu_alarm_high]: CREATE_COMPLETE  state changed
+	2024-05-19 16:35:27Z [example]: CREATE_COMPLETE  Stack CREATE completed successfully
+	2024-05-19 16:40:25Z [example.scaleout_policy]: SIGNAL_COMPLETE  alarm state changed from insufficient data to alarm (Transition to alarm due to 2 samples outside threshold, most recent: 2840000000.0)
+	2024-05-19 16:55:25Z [example.scaleout_policy]: SIGNAL_COMPLETE  alarm state changed from ok to alarm (Transition to alarm due to 2 samples outside threshold, most recent: 29940000000.0)
+
+
+	
+	pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack resource show example scaleout_policy -f json
+	{
+	  "attributes": {
+	    "alarm_url": "http://10.0.0.250:8000/v1/signal/arn%3Aopenstack%3Aheat%3A%3Ae8f995fa647b460f97bfd13ec9f338b7%3Astacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997/resources/scaleout_policy?SignatureMethod=HmacSHA256&SignatureVersion=2&AWSAccessKeyId=5d0af9932fc745fba4d1c96e70a80f35&Signature=dZ6iAgKQh3%2FD64j2TM6AsPMihv9L%2FtCT%2F2Bi%2F%2Ff%2BXog%3D",
+	    "signal_url": "http://10.0.0.250:8004/v1/e8f995fa647b460f97bfd13ec9f338b7/stacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997/resources/scaleout_policy/signal"
+	  },
+	  "creation_time": "2024-05-19T12:25:57Z",
+	  "description": "",
+	  "links": [
+	    {
+	      "href": "http://10.0.0.250:8004/v1/e8f995fa647b460f97bfd13ec9f338b7/stacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997/resources/scaleout_policy",
+	      "rel": "self"
+	    },
+	    {
+	      "href": "http://10.0.0.250:8004/v1/e8f995fa647b460f97bfd13ec9f338b7/stacks/example/6da493a9-b0bb-43bc-bb6a-00fd88d1b997",
+	      "rel": "stack"
+	    }
+	  ],
+	  "logical_resource_id": "scaleout_policy",
+	  "physical_resource_id": "7c79b589865647f39cc1c44da3e531b6",
+	  "required_by": [
+	    "cpu_alarm_high"
+	  ],
+	  "resource_name": "scaleout_policy",
+	  "resource_status": "CREATE_COMPLETE",
+	  "resource_status_reason": "state changed",
+	  "resource_type": "OS::Heat::ScalingPolicy",
+	  "updated_time": "2024-05-19T12:25:57Z"
+	}
+
+
+	- FORZAR AUTOESCALADO HACIA ARRIBA. PARECE QUE LA CORRECTA. Utiliza en la URL, como "OS::project_id", el ID del proyecto admin. IMPORTANTE, la URL es "signal_url":
+		TOKEN=$(openstack token issue -f value -c id)		
+		curl -X POST http://10.0.0.250:8004/v1/<OS::project_id>/stacks/example/<OS::stack_id>/resources/scaleout_policy/signal -H "X-Auth-Token: $TOKEN"
+	- Igual hacia abajo:
+		curl -X POST http://10.0.0.250:8004/v1/<OS::project_id>/stacks/example/<OS::stack_id>/resources/scalein_policy/signal -H "X-Auth-Token: $TOKEN"	
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+COMANDOS ÚTILES AUTOESCALADO
+
+pabloreal@giros21:~/vnx-kolla-openstack$ openstack alarm-history show 29322be6-95f2-485b-a966-3cf8038e4bbe -f json
+[
+  {
+    "timestamp": "2024-05-19T16:55:14.315644",
+    "type": "state transition",
+    "detail": "{\"state\": \"alarm\", \"transition_reason\": \"Transition to alarm due to 2 samples outside threshold, most recent: 29940000000.0\"}",
+    "event_id": "28acd7a9-5023-4310-b6e5-535c6941544b"
+  },
+  {
+    "timestamp": "2024-05-19T16:45:14.278369",
+    "type": "state transition",
+    "detail": "{\"state\": \"ok\", \"transition_reason\": \"Transition to ok due to 2 samples inside threshold, most recent: 570000000.0\"}",
+    "event_id": "4dedc497-97f1-49a6-b50c-b629ea5e0761"
+  },
+  {
+    "timestamp": "2024-05-19T16:40:14.289810",
+    "type": "state transition",
+    "detail": "{\"state\": \"alarm\", \"transition_reason\": \"Transition to alarm due to 2 samples outside threshold, most recent: 2840000000.0\"}",
+    "event_id": "3cdeee6a-fadf-4d1d-a8a9-0d274ecf71ae"
+  },
+  {
+    "timestamp": "2024-05-19T16:35:27.026060",
+    "type": "creation",
+    "detail": "{\"alarm_id\": \"29322be6-95f2-485b-a966-3cf8038e4bbe\", \"type\": \"gnocchi_aggregation_by_resources_threshold\", \"enabled\": true, \"name\": \"example-cpu_alarm_high-6dya7mivsueg\", \"description\": \"Scale up if CPU > 80%\", \"timestamp\": \"2024-05-19T16:35:27.026060\", \"user_id\": \"d37a921353034a3189c08f7936889875\", \"project_id\": \"e8f995fa647b460f97bfd13ec9f338b7\", \"state\": \"insufficient data\", \"state_timestamp\": \"2024-05-19T16:35:27.026060\", \"state_reason\": \"Not evaluated yet\", \"ok_actions\": [], \"alarm_actions\": [\"trust+http://63bb34a480b942dda8e3ca22388b6b55:delete@10.0.0.250:8004/v1/e8f995fa647b460f97bfd13ec9f338b7/stacks/example/9bfae6bf-9159-478c-a83f-d18619a30a40/resources/scaleout_policy/signal\"], \"insufficient_data_actions\": [], \"repeat_actions\": true, \"time_constraints\": [], \"severity\": \"low\", \"rule\": {\"granularity\": 60, \"comparison_operator\": \"gt\", \"threshold\": 800000000.0, \"aggregation_method\": \"rate:mean\", \"evaluation_periods\": 2, \"metric\": \"cpu\", \"query\": \"{\\\"=\\\": {\\\"server_group\\\": \\\"9bfae6bf-9159-478c-a83f-d18619a30a40\\\"}}\", \"resource_type\": \"instance\"}}",
+    "event_id": "900e16ee-9279-4de9-8f48-34d378f04273"
+  }
+]
+
+
+pabloreal@giros21:~/vnx-kolla-openstack$ openstack stack show example -f json | jq '.parameters'
+{
+  "OS::stack_id": "6da493a9-b0bb-43bc-bb6a-00fd88d1b997",
+  "OS::project_id": "e8f995fa647b460f97bfd13ec9f338b7",
+  "OS::stack_name": "example"
+}
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+FORZAR USO CPU
+
+Comandos a ejecutar:
+	apt-get update
+	apt-get install stress
+	stress -c $(nproc)
+
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+ANSIBLE VERSIONS: https://docs.ansible.com/ansible/latest/reference_appendices/release_and_maintenance.html
++----------------------------------+-----------+----------------+
+| Ansible Community Package Release| Status    | ansible-core   |
++----------------------------------+-----------+----------------+
+| 10.0.0                           | Develop   | 2.17           |
+| 9.x                              | Current   | 2.16           |
+| 8.x                              | Unmantain | 2.15           |
+| 7.x                              | Unmantain | 2.14           |
+| 6.x                              | Unmantain | 2.13           |
++----------------------------------+-----------+----------------+
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+DOCUMENTACION
+
+- Heat Orchestration template (HOT)
+	https://docs.openstack.org/heat/2024.1/template_guide/hot_spec.html#hot-spec-parameters-constraints
+	
+- AutoScaling
+	https://contactchanaka.medium.com/mastering-openstack-from-installation-to-auto-scaling-your-cloud-infrastructure-1bb05d422b16
+	https://access.redhat.com/documentation/es-es/red_hat_openstack_platform/16.0/html-single/auto_scaling_for_instances/index
+
+- Cinder NFS (ahora es LVM, mirar último enlace):
+	https://hackmd.io/@yujungcheng/ByXxq-_Vj
+	https://www.server-world.info/en/note?os=CentOS_Stream_9&p=openstack_bobcat2&f=13
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/storage/cinder-guide.html
+
+- Ceilometer
+	https://github.com/openstack/ceilometer/tree/stable/2024.1/ceilometer/pipeline/data
+	https://fleio.com/docs/2024.01/configuring/ceilometer-configuration.html
+	
+- Gnocchi
+	https://access.redhat.com/documentation/es-es/red_hat_openstack_platform/13/html/operational_measurements/planning-for-operational-measurements_osp
+	
+- Octavia
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/networking/octavia.html
+
+- Swift
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/storage/swift-guide.html
+	https://www.techtarget.com/searchstorage/definition/OpenStack-Swift/
+	https://docs.openstack.org/python-openstackclient/pike/cli/command-objects/object.html
+
+- Grafana
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/logging-and-monitoring/grafana-guide.html
+	https://achchusnulchikam.medium.com/monitoring-instances-on-openstack-using-collectd-graphite-and-grafana-38c757355457
+	https://grafana.com/docs/grafana-cloud/send-data/metrics/metrics-prometheus/prometheus-config-examples/the-openstack-community-kolla/
+	
+- FWaas
+	https://docs.openstack.org/kolla-ansible/2024.1/reference/networking/neutron-extensions.html
+
+- Skyline
+	https://opendev.org/openstack/skyline-apiserver/src/branch/stable/2024.1/kolla
+	https://www.server-world.info/en/note?os=Ubuntu_22.04&p=openstack_antelope5&f=4
+	
+- Neutron
+	https://docs.openstack.org/kolla-ansible/latest/reference/networking/neutron.html
+	
+- Trove
+	https://www.linkedin.com/pulse/trove-database-service-openstack-satish-patel-ib5re?utm_source=share&utm_medium=member_android&utm_campaign=share_via
+	
+- Glance
+	https://learning.oreilly.com/library/view/deploying-openstack/9781449311223/ch03.html#Architecture_1
+	
+- Terraform
+	https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
+	https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs
+	https://terraform-infraestructura.readthedocs.io/es/latest/comandos/#comando-plan
+	https://terraform-infraestructura.readthedocs.io/es/latest/comandos/#comando-apply
+	
+-------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+PROBLEMAS ya SOLUCIONADOS
+
+1. Problema de almacenamiento solucionado: ahora los nodos tienen 40G en vez de 20G.
+Errores obtenidos:	
+	Error 1: httpException: 413: Client Error for url:  Request Entity Too Large
+	Error 2: HTTP 413 Request Entity Too Large: Image storage media is full: There is not enough disk space on the image storage media
+
+2. Sin acceso SSH a admin. Solucionado:
+	- David añade 2 líneas al .xml donde se cambia el MTU a 1400 (así se permite el acceso por SSH).
+	- Si no, se puede cambiar a mano mediante: ip link set dev ens3 mtu 1400
+
+3. Sin conectividad en net2: las interfaces de red se creaban en estado DOWN. 
+	- Solución: Cambio en la configuracion de net2 eliminando el atributo gateway_ip.
+	- Si no: 
+		- Ejecutar: ip link set dev ens4 up. 
+		- Luego eliminar la ruta que se ha creado: ip route del default via 10.1.2.1
+		
+4. Octavia. Problemas encontrados:
+	- Crear red de VLANs en el nodo controller (VlanNet). A esta red se conectan tanto el nodo de red como los de computación.
+	- Crear nueva imagen de amphora acorde con la versión 2024.1 de OpenStack y subirla al servidor de VNX.
+	- Aumentar RAM tanto del nodo controlador como de los de computación, para evitar problemas del tipo: No Host found.
+
+5. Error deploy kolla:
+Nodo Controlador: failed: [10.0.0.21]: File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 532, in send\\n    conn = self._get_connection(request, verify, proxies=proxies, cert=cert)\\n  File \"/usr/local/lib/python3.10/dist-packages/requests/adapters.py\", line 400, in _get_connection\\n    conn = self.poolmanager.connection_from_host(\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 304, in connection_from_host\\n    return self.connection_from_context(request_context)\\n  File \"/usr/local/lib/python3.10/dist-packages/urllib3/poolmanager.py\", line 326, in connection_from_context\\n    raise URLSchemeUnknown(scheme)\\nurllib3.exceptions.URLSchemeUnknown: Not supported URL scheme http+docker
+
+- Solucionado: Han sacado una nueva versión del paquete requests que no da errores. Dejo por aquí la solución de David, por si vuelve a pasar. Se pone despues del bootstrap-servers:
+	for i in controller network compute1 compute2 compute3; do ssh $i pip install --force-reinstall requests==2.31.0; done
+	
+5.1 Lo mismo pero ahora con el paquete bcrypt:
+	for i in controller network compute1 compute2 compute3; do ssh $i pip install --force-reinstall --user bcrypt==4.0.1; done
+	
+6. Swift: 
+	6.1 Error Swift Puertos Rings. Solucionado, era un problema de los puertos al crear los anillos, que todos estaban en 6000:
+
+	Compute1: Mirar swift-ring-builder account.builder
+
+	kolla-swift_container_replicator-container.service - docker kolla-swift_container_replicator-container.service
+	Can't find itself 10.0.0.31 with port 6002 in ring file, not replicating
+	
+	6.2 Swift. No se puede crear un contenedor desde la interfaz de Horizon (hay un bug con el tema de las politicas que no detecta ninguna. Error: no se ha podido descargar los detalles de la 			política).
+	Posible solucion: Añadir lineas a swift.conf y a globals.yml.
+	Solucion en: https://bugs.launchpad.net/kolla-ansible/+bug/1980880
+	
+7. Gnocchi
+	https://bugs.launchpad.net/kolla-ansible/+bug/1920095
+	https://review.opendev.org/c/openstack/kolla-ansible/+/781595
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+PRUEBAS CON GLANCE
+
+MétodoHTTP Backend NO FUNCIONA. HAY QUE PROBAR OTRO TIPO DE BACKENDS (SWIFT DIO ERROR EN LA CONF DE OPENSTACK)
+
+Causas:
+- No se puede realizar: openstack image create con la opción --location porque está deprecado en la v2 de Glance
+- Otra opción es descargar la imagen con: wget http://10.0.0.1:80/servers_image.qcow2 -O servers_image.qcow2, pero luego da error: 
+openstack image create --container-format bare --disk-format qcow2 --public --file servers_image.qcow2 focal-servers-vnx
+HttpException: 410: Client Error for url: http://10.0.0.250:9292/v2/images/1aa8dfc8-4e96-47bb-ba40-84948186beab/file, Gone
+- El error radica en que no se permite en algún sitio añadir imágenes al backend pero no sé dónde (creo que el backend de tipo http en Glance v2 va mal y ya):
+2024-04-17 18:39:30.012 18 ERROR glance.api.v2.image_data glance_store.exceptions.StoreAddDisabled: Configuration for store failed. Adding images to this store is disabled. 
+
+
+1. Acceder al nodo Controller, actualizar esto para obtener las imagenes con glance mediante http:
+[glance_store]
+stores = http
+default_store = http
+http_store_host = 10.0.0.1
+http_store_port = 8000
+default_backend = http
+
+Ejecutar: systemctl restart kolla-glance_api-container.service
+
+2. Subir las imagenes al nodo admin: scp -r ../openstack-images/ root@admin:/root/openstack-images
+
+3. Acceder al nodo admin, a la ruta /root/openstack-images y ejecutar: python3 -m http.server 
+3.1 Comprobar si el servidor está bien lanzado ejecutando desde otro nodo (no admin): curl -I http://10.0.0.1:8000/servers_image.qcow2
+
+MÁS ALTERNATIVAS: Swift y Ceph no se habilitan correctamente en la configuración. Cinder necesita de una imagen de Glance, no sirve.
+
+------------------------------------------------------------------------------------------------------------------------------------------------
+CONGELAR IMAGENES NODOS
+
+https://github.com/giros-dit/vnx-kubespray/blob/develop/README-create-k8s_lab.md
+
+-------------------------------------------------------------------------------------------------------------------------------------------------
+CONFIGURACION NFS
+
+Admin:
+	sed -i 's/#enable_cinder_backup:.*/enable_cinder_backup: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/#enable_cinder_backend_nfs:.*/enable_cinder_backend_nfs: "yes"/' /etc/kolla/globals.yml
+
+        sed -i 's/#cinder_backup_driver:.*/cinder_backup_driver: "nfs"/' /etc/kolla/globals.yml
+        sed -i 's/^#*\(cinder_backup_share:\).*/\1 "controller:\/kolla_nfs"/' /etc/kolla/globals.yml
+        sed -i 's/#cinder_backup_mount_options_nfs:.*/cinder_backup_mount_options_nfs: ""/' /etc/kolla/globals.yml
+
+        echo "controller:/kolla_nfs" >> /etc/kolla/config/nfs_shares
+        chmod 777 /etc/kolla/config/nfs_shares
+        
+        
+Controller:
+    <exec seq="setup-nfs" type="verbatim">
+        apt install nfs-kernel-server -y
+        echo "/kolla_nfs 10.0.0.1/24(rw,sync,no_root_squash)" >> /etc/exports
+        chmod 777 /etc/exports
+        mkdir /kolla_nfs
+        systemctl restart nfs-kernel-server
+    </exec>
+    
+----------------------------------------------------------------------------------------------------------------------------------------------------
+
+DESCRIPCIÓN ESCENARIO
+
+El escenario es el siguiente:
+compute3: [10.0.0.32]
+compute2: [10.0.0.33]
+compute1: [10.0.0.31]
+network: [10.0.0.21]
+controller: [10.0.0.11]
+admin: [10.0.0.1]
+
+
+pabloreal@giros21:~/vnx-kolla-openstack$ openstack --os-cloud kolla-admin service list
++----------------------------------+-----------+----------------+
+| ID                               | Name      | Type           |
++----------------------------------+-----------+----------------+
+| 1724d842ac544f778759b4e8903b4921 | heat-cfn  | cloudformation |
+| 545af203e0bb4f46ae5d7700ae551eba | keystone  | identity       |
+| 905bf5d1f9f04b9ca7cc4aabb0df2592 | neutron   | network        |
+| beb1870570f04811820f45453152c95b | heat      | orchestration  |
+| c640489bb1e446c6af76ff0648afa828 | gnocchi   | metric         |
+| ebcd99cdc54d40b9a82489e605ef2031 | glance    | image          |
+| ee34a153364245039e053ddd08518c89 | placement | placement      |
+| f0470b6fd0f84475aae4e84c33dc2e09 | nova      | compute        |
++----------------------------------+-----------+----------------+
+
+
+kolla-nova_api-container.service                                                                      loaded active     running   docker >
+  kolla-nova_conductor-container.service                                                                loaded active     running   docker >
+  kolla-nova_novncproxy-container.service                                                               loaded active     running   docker >
+  kolla-nova_scheduler-container.service  
+
+
