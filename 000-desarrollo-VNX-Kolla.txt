@@ -79,6 +79,23 @@ gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c
 
 800000000.0
 
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+MYSQL
+
+- Instalar paquetes necesarios en el HOST:
+	apt-get install -y mysql-server
+	pip install pandas mysql-connector-python
+	
+- Crear la Base de Datos:
+	sudo mysql
+	mysql> CREATE DATABASE IF NOT EXISTS gnocchi
+	
+- Crear usuario dentro de mysql:
+	sudo mysql
+	mysql> CREATE USER pabloreal@localhost IDENTIFIED BY 'xxxx';
+	mysql> GRANT ALL PRIVILEGES ON gnocchi.* TO pabloreal@localhost;
+	mysql> FLUSH PRIVILEGES;
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

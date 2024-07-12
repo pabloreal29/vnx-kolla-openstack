@@ -1,0 +1,219 @@
+import pandas as pd
+import numpy as np
+import mysql.connector
+from mysql.connector import errorcode
+import subprocess
+import io
+
+# Configuración de la conexión a MySQL
+config = {
+    'user': 'pabloreal',
+    'password': 'xxxx',
+    'host': 'localhost',
+    'database': 'gnocchi',
+}
+
+# Funcion para ejecutar comando y obtener la salida
+def execute_command(command):
+    try:
+        result = subprocess.run(command, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return result.stdout.decode('utf-8')
+    except subprocess.CalledProcessError as e:
+        print(f"Error al ejecutar el comando '{command}': {e}")
+        return None
+
+# Conexión a MySQL
+try:
+    cnx = mysql.connector.connect(**config)
+    cursor = cnx.cursor()
+except mysql.connector.Error as err:
+    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+        print("Error en el acceso a MySQL. Revisa tu nombre de usuario y contraseña")
+    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+        print("La base de datos no existe")
+    else:
+        print(err)
+    exit(1)
+
+# Creación de las tablas necesarias
+def create_servers_table(cursor):
+    try:
+        cursor.execute("CREATE DATABASE IF NOT EXISTS gnocchi")
+        cursor.execute("USE gnocchi")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS servers (
+                ID VARCHAR(36) PRIMARY KEY,
+                Name VARCHAR(255),
+                Status VARCHAR(50),
+                Networks VARCHAR(255),
+                Image VARCHAR(255),
+                Flavor VARCHAR(50)
+            )
+        """)
+        print(f"Tabla servers creada exitosamente.")
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        exit(1)
+
+def create_metrics_table(cursor):
+    try:
+        cursor.execute("CREATE DATABASE IF NOT EXISTS gnocchi")
+        cursor.execute("USE gnocchi")
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS metrics (
+                id VARCHAR(36) PRIMARY KEY,
+                archive_policy_name VARCHAR(255),
+                name VARCHAR(255),
+                unit VARCHAR(50),
+                resource_id VARCHAR(36)
+            )
+        """)
+        print(f"Tabla metrics creada exitosamente.")
+    except mysql.connector.Error as err:
+        print(f"Error: {err}")
+        exit(1)
+
+def create_measures_table(cursor):
+    for i in range(1, 6):
+        table_name = f"cpu_s{i}"
+        try:
+            cursor.execute("CREATE DATABASE IF NOT EXISTS gnocchi")
+            cursor.execute("USE gnocchi")
+            cursor.execute(f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    timestamp DATETIME NOT NULL PRIMARY KEY,
+                    granularity FLOAT,
+                    value DOUBLE
+                )
+            """)
+            print(f"Tabla {table_name} creada exitosamente.")
+        except mysql.connector.Error as err:
+            print(f"Error al crear la tabla {table_name}: {err}")
+
+create_servers_table(cursor)
+create_metrics_table(cursor)
+create_measures_table(cursor)
+
+# Ejecutar el comando para obtener los servidores y obtener el resultado como CSV
+subprocess.run(["bash", "conf/admin-openrc.sh"]) 
+servers_command = "openstack server list -f csv"
+output1 = execute_command(servers_command)
+
+if output1:
+    # Leer el CSV usando pandas
+    df = pd.read_csv(io.StringIO(output1))
+    df = df.replace({np.nan: None})
+
+    # Insertar los datos en la tabla servers
+    for _, row in df.iterrows():
+        try:
+            cursor.execute("""
+                INSERT IGNORE INTO servers (ID, Name, Status, Networks, Image, Flavor)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (row['ID'], row['Name'], row['Status'], row['Networks'], row['Image'], row['Flavor']))
+        except mysql.connector.Error as err:
+            print(f"Error al insertar el servidor con ID {row['ID']}: {err}")
+
+    # Confirmar los cambios y cerrar la conexión
+    cnx.commit()
+
+    print("Datos de servidores insertados exitosamente.")
+else:
+    print("No se pueden obtener los datos de los servidores desde nova.")
+
+
+# Ejecutar el comando para obtener las metricas y obtener el resultado como CSV
+gnocchi_command = "gnocchi metric list --sort-column name --sort-descending -f csv"
+output2 = execute_command(gnocchi_command)
+
+if output2:
+    # Leer el CSV usando pandas
+    df = pd.read_csv(io.StringIO(output2))
+    df = df.replace({np.nan: None})
+
+    # Insertar los datos en la tabla metrics
+    for _, row in df.iterrows():
+        try:
+            cursor.execute("""
+                INSERT IGNORE INTO metrics (id, archive_policy_name, name, unit, resource_id)
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                    archive_policy_name = VALUES(archive_policy_name),
+                    name = VALUES(name),
+                    unit = VALUES(unit),
+                    resource_id = VALUES(resource_id)
+            """, (row['id'], row['archive_policy/name'], row['name'], row['unit'], row['resource_id']))
+        except mysql.connector.Error as err:
+            print(f"Error al insertar la métrica con ID {row['id']}: {err}")
+
+    # Confirmar los cambios y cerrar la conexión
+    cnx.commit()
+
+    print("Datos de métricas insertados exitosamente.")
+else:
+    print("No se pueden obtener los datos de las métricas desde gnocchi.")
+
+
+# Consultas SQL para obtener los IDs de métricas de CPU para 's1', 's2' y 's3'
+queries = [
+    "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'cpu' AND servers.name = 's1';",
+    "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'cpu' AND servers.name = 's2';",
+    "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'cpu' AND servers.name = 's3';"
+]
+
+# Lista para almacenar los IDs de métricas
+cpu_ids = []
+
+# Ejecutar las consultas y obtener los IDs de métricas
+for query in queries:
+    try:
+        cursor.execute(query)
+        results = cursor.fetchall()
+        if results:
+            cpu_ids.append(results[0][0])  # Agregar el primer resultado de la primera fila a la lista
+    except mysql.connector.Error as err:
+        print(f"Error al ejecutar la consulta SQL: {err}")
+
+# Imprimir los IDs obtenidos
+for i, cpu_id in enumerate(cpu_ids, start=1):
+    print(f"El ID de la métrica correspondiente al uso de CPU en el servidor s{i} es:", cpu_id)
+
+# Ejecutar el comando para obtener las medidas y obtener el resultado como CSV
+for i, cpu_id in enumerate(cpu_ids, start=1):
+    measures_command = f"gnocchi measures show --aggregation mean {cpu_id} --sort-column timestamp --sort-descending -f csv"
+    output_servers = execute_command(measures_command)
+
+    if output_servers:
+        try:
+            # Leer el CSV usando pandas
+            df = pd.read_csv(io.StringIO(output_servers))
+            df = df.replace({np.nan: None})
+            
+            # Asegurar que las columnas esperadas estén presentes en el DataFrame
+            if 'timestamp' in df.columns and 'granularity' in df.columns and 'value' in df.columns:
+                # Insertar los datos en la tabla cpu_s{i}
+                table_name = f"cpu_s{i}"
+                for _, row in df.iterrows():
+                    try:
+                        cursor.execute(f"""
+                            INSERT IGNORE INTO {table_name} (timestamp, granularity, value)
+                            VALUES (%s, %s, %s)
+                        """, (row['timestamp'], row['granularity'], row['value']))
+                    except mysql.connector.Error as err:
+                        print(f"Error al insertar datos en {table_name}: {err}")
+                cnx.commit()
+                print(f"Datos del uso de la CPU en s{i} insertados exitosamente.")
+            else:
+                print(f"El DataFrame no contiene las columnas esperadas: {df.columns}")
+        except pd.errors.EmptyDataError:
+            print(f"No se encontraron datos en la salida del comando para {table_name}.")
+    else:
+        print(f"No se pudo obtener el resultado de las medidas del uso de la CPU en s{i}.")
+
+# Cerrar cursor y conexión
+cursor.close()
+cnx.close()
+
+
+
+
