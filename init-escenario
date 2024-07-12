@@ -4,6 +4,8 @@
 # sudo sed -i '/lxc.mount.entry = \/home\/giros\/vnx-lab-openstack-antelope\/shared \/root\/.vnx\/scenarios\/openstack_lab-antelope\/vms\/controller\/mnt\/rootfs\/\/root\/shared none bind 0 0/d' ./filesystems/rootfs_lxc_ubuntu64-ostack-controller/config
 
 # Almacenar las claves del nodo admin
+scp root@admin:/etc/kolla/admin-openrc.sh conf/
+
 rm -rf $HOME/.config/openstack/
 mkdir $HOME/.config/openstack/
 scp root@admin:/etc/kolla/clouds.yaml $HOME/.config/openstack/
@@ -22,9 +24,9 @@ sudo vnx -f $OSTACKLAB -x load-img
 #Crear mi usuario
 openstack --os-cloud kolla-admin user create myuser --project admin --password xxxx
 openstack --os-cloud kolla-admin role add admin --user myuser --project admin 
-source deploy/myuser-openrc.sh
 
 #Crear parejas de claves
+source conf/admin-openrc.sh
 rm -rf ./tmp/keys
 mkdir -p ./tmp/keys
 openstack keypair create administrador > ./tmp/keys/administrador
@@ -41,7 +43,7 @@ chmod 700 ./tmp/keys/s2
 chmod 700 ./tmp/keys/s3
 
 #Importar imagenes de las VMs
-openstack image create focal-servers-vnx --file openstack-images/asg_servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-servers-vnx --file openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 openstack image create focal-bbdd-vnx --file openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 openstack image create focal-administrador-vnx --file openstack-images/administrador_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 
@@ -57,8 +59,8 @@ openstack object create students-container --name studentsBBDD.json deploy/stude
 trove_net_id=$(openstack net show trove-mgmt-net -c id -f value)
 openstack database instance create my_db --flavor m1.large --size 5 --nic net-id=$net2_id --nic net-id=$trove_net_id --datastore mysql --datastore-version 5.7.29 --is-public --allowed-cidr 0.0.0.0/0 --locality affinity --database testdb --users spatel:mypassword 
 
-#Crear el stack con todos los elementos del escenario
-# openstack stack create -t deploy/escenarioTF_ASG.yaml my_stack
+# #Crear el stack con todos los elementos del escenario
+# openstack stack create -t deploy/escenarioTF.yml my_stack
 
 # #Esperar a que se cree el router del escenario antes de asignarle el firewall 
 # sleep 60

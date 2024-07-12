@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ejecucion: source deploy/fw.sh -X, donde X es el parámetro a introducir.
-source deploy/myuser-openrc.sh
+source conf/admin-openrc.sh
 
 if [ "$1" == "-s" ]; then
     subnet1_id=$(openstack subnet list --network Net1 -c ID -f value)

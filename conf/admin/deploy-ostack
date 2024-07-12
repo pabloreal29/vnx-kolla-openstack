@@ -20,10 +20,13 @@ for i in controller network compute1 compute2 compute3; do ssh $i pip install --
 ./rings-swift
 
 kolla-ansible -i $INVENTORY --configdir /etc/kolla prechecks
-
 kolla-ansible -i $INVENTORY --configdir /etc/kolla deploy
 kolla-ansible post-deploy
 
 # Añadido por Pablo. Configuracion de Trove
 ./conf-trove
-kolla-ansible -i $INVENTORY --configdir /etc/kolla reconfigure -t trove
+
+# Añadido por Pablo. Configuracion de Ceilometer
+./conf-ceilometer
+
+kolla-ansible -i $INVENTORY --configdir /etc/kolla reconfigure -t trove -t ceilometer -t rabbitmq

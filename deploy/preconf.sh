@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source deploy/myuser-openrc.sh
+source conf/admin-openrc.sh
 openstack network create Net1
 openstack subnet create --network Net1 --gateway 10.1.1.1 --dns-nameserver 8.8.8.8 --subnet-range 10.1.1.0/24 --allocation-pool start=10.1.1.2,end=10.1.1.100 subnet1
 openstack router create r0

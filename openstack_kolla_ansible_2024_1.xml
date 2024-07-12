@@ -42,7 +42,6 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         <console id="0" display="no"/>
         <console id="1" display="yes"/>
     </vm_defaults>
-    <!-- <cmd-seq seq="config-admin">config-admin1,config-admin2,setup-nfs</cmd-seq> -->
     <cmd-seq seq="config-admin">config-admin1,config-admin2</cmd-seq>
   </global>
 
@@ -80,6 +79,9 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
 
     <!-- Añadido por Pablo. Archivos necesarios para configurar Trove -->
     <filetree seq="on_boot" root="/root/">conf/admin/conf-trove</filetree>
+
+    <!-- Añadido por Pablo. Archivos necesarios para configurar Trove -->
+    <filetree seq="on_boot" root="/root/">conf/admin/conf-ceilometer</filetree>
 
     <exec seq="on_boot" type="verbatim">
         dhclient eth9

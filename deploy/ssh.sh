@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ejecucion: source deploy/ssh.sh -X, donde X es el parámetro a introducir.
-source deploy/myuser-openrc.sh
+source conf/admin-openrc.sh
 
 if [ "$1" == "-s" ]; then
     openstack firewall group rule set ssh_admin --enable-rule

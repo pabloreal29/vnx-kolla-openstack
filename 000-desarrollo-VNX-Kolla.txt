@@ -65,6 +65,7 @@ TERRAFORM
 	- Lo he instalado siguiendo la guia de: https://developer.hashicorp.com/terraform/tutorials/aws-get-started/install-cli
 	- Probar: terraform init desde la carpeta /root/shared en el nodo tf-node, una vez esté desplegado Kolla
 	- Para crear recursos: https://registry.terraform.io/providers/terraform-provider-openstack/openstack/latest/docs
+	- Tener en cuenta qye los nombres de los recursos creados con Terraform no pueden tener puntos:  A name must start with a letter or underscore and may contain only letters, digits, underscores, and dashes.
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 GNOCCHI

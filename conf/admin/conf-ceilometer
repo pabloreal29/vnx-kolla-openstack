@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Añadido Por Pablo. Configurar RabbitMQ para que se reinicie su contenedor al hacer reconfigure-->
+sed -i 's/- rabbitmq_restart/- rabbitmq/' /root/kolla/share/kolla-ansible/ansible/rabbitmq.yml
+
+ssh root@controller << 'EOF'
+sed -i '/rabbit_quorum_queue = true/a amqp_durable_queues = false' /etc/kolla/ceilometer-central/ceilometer.conf
+sed -i '/rabbit_quorum_queue = true/a amqp_durable_queues = false' /etc/kolla/ceilometer-notification/ceilometer.conf
+EOF
