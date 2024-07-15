@@ -4,3 +4,4 @@
 # Do not stage images from nodes (.qcow2)
 filesystems/
 openstack-images/
+images/

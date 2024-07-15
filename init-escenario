@@ -43,9 +43,9 @@ chmod 700 ./tmp/keys/s2
 chmod 700 ./tmp/keys/s3
 
 #Importar imagenes de las VMs
-openstack image create focal-servers-vnx --file openstack-images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-openstack image create focal-bbdd-vnx --file openstack-images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
-openstack image create focal-administrador-vnx --file openstack-images/administrador_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-servers-vnx --file images/servers_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-bbdd-vnx --file images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
+openstack image create focal-administrador-vnx --file images/administrador_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 
 #Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
 #Nota: he reducido las vcpus y la ram respecto al trabajo de cnvr
@@ -53,7 +53,7 @@ openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 
 #Crear un contenedor con una copia de la bbdd de estudiantes
 openstack container create students-container
-openstack object create students-container --name studentsBBDD.json deploy/students.json
+openstack object create students-container --name studentsBBDD.json deploy/servers/students.json
 
 #Crear instancia de trove
 trove_net_id=$(openstack net show trove-mgmt-net -c id -f value)
