@@ -43,10 +43,9 @@ def drop_tables(cursor):
     for table in tables:
         try:
             cursor.execute(f"DROP TABLE IF EXISTS {table}")
-            print(f"Tabla {table} eliminada exitosamente.")
         except mysql.connector.Error as err:
             print(f"Error al eliminar la tabla {table}: {err}")
-
+    
 # Creación de las tablas necesarias
 def create_servers_table(cursor):
     try:

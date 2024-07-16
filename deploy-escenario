@@ -15,7 +15,7 @@ elif [ "$1" == "destroy" ]; then
     cd shared/ 
     terraform destroy -auto-approve
 EOF
-    ssh root@controller<< 'EOF'
+    ssh root@controller << 'EOF'
     systemctl restart kolla-ceilometer*
 EOF
 

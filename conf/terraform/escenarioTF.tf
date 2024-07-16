@@ -153,11 +153,13 @@ resource "openstack_networking_port_v2" "port_admin2" {
 
 # IPs Flotantes
 resource "openstack_networking_floatingip_v2" "floating_ipLB" {
+  description = "IP Flotante del alanceador de Carga"
   pool = data.openstack_networking_network_v2.extnet.name
   port_id = openstack_lb_loadbalancer_v2.load_balancer.vip_port_id
 }
 
 resource "openstack_networking_floatingip_v2" "floating_ipAdmin" {
+  description = "IP Flotante del servidor de Administración"
   pool = data.openstack_networking_network_v2.extnet.name
   port_id = openstack_networking_port_v2.port_admin1.id
 }
@@ -180,6 +182,11 @@ resource "openstack_lb_pool_v2" "lb_pool" {
   lb_method     = "ROUND_ROBIN"
   protocol      = "HTTP"
   listener_id   = openstack_lb_listener_v2.lb_listener.id
+}
+
+# Neceaario para añadir un nuevo miembro al pool del load_balancer
+output "lb_pool_id" {
+  value = openstack_lb_pool_v2.lb_pool.id
 }
 
 resource "openstack_lb_members_v2" "lb_members" {
@@ -214,7 +221,7 @@ resource "openstack_compute_instance_v2" "s1" {
   user_data = <<-EOT
     #!/bin/bash
     systemctl start apache2
-    echo "<h1>Bienvenidos al Servidor 1</h1>" > /var/www/html/index.html
+    echo "<h1>Bienvenidos al Servidor s1</h1>" > /var/www/html/index.html
   EOT
 }
 
@@ -232,7 +239,7 @@ resource "openstack_compute_instance_v2" "s2" {
   user_data = <<-EOT
     #!/bin/bash
     systemctl start apache2
-    echo "<h1>Bienvenidos al Servidor 2</h1>" > /var/www/html/index.html
+    echo "<h1>Bienvenidos al Servidor s2</h1>" > /var/www/html/index.html
   EOT
 }
 
@@ -250,7 +257,7 @@ resource "openstack_compute_instance_v2" "s3" {
   user_data = <<-EOT
     #!/bin/bash
     systemctl start apache2
-    echo "<h1>Bienvenidos al Servidor 3</h1>" > /var/www/html/index.html
+    echo "<h1>Bienvenidos al Servidor s3</h1>" > /var/www/html/index.html
   EOT
 }
 
