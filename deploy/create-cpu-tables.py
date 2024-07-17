@@ -10,7 +10,7 @@ import argparse
 config = {
     'user': 'pabloreal',
     'password': 'xxxx',
-    'host': 'localhost',
+    'host': '10.0.0.2',
     'database': 'gnocchi',
 }
 

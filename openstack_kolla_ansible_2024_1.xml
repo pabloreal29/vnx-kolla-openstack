@@ -194,9 +194,10 @@ Copyright (C) 2021 Networking and Virtualization Research Group (GIROS)
         sed -i '$ a\[storage-policy:0]\nname = Policy-0\ndefault = true' /root/kolla/share/kolla-ansible/ansible/roles/swift/templates/swift.conf.j2
         sed -i '/#swift_enable_rolling_upgrade: "yes"/a swift_delay_auth_decision: "yes"' /etc/kolla/globals.yml
 
-        <!-- Añadido Por Pablo. Habilitar Grafana-->
+        <!-- Añadido Por Pablo. Habilitar Grafana y Prometheus-->
         sed -i 's/grafana_admin_password:.*/grafana_admin_password: grafana/' /etc/kolla/passwords.yml
         sed -i 's/#enable_grafana:.*/enable_grafana: "yes"/' /etc/kolla/globals.yml
+        sed -i 's/prometheus_password:.*/prometheus_password: prometheus/' /etc/kolla/passwords.yml    
         sed -i 's/#enable_prometheus:.*/enable_prometheus: "yes"/' /etc/kolla/globals.yml
 
         <!-- Añadido Por Pablo. Habilitar Trove-->

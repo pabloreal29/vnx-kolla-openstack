@@ -8,7 +8,7 @@ from tkinter import messagebox
 
 # Límites a considerar
 SAMPLE_NUMBER = 5
-CPU_THRESHOLD = 210
+CPU_THRESHOLD = 500
 
 # Define the path to your existing script
 create_tables_script = "deploy/create-ram-tables.py"
@@ -24,7 +24,7 @@ deploy_instance_command = f"bash {deploy_instance_script}"  # Comando para ejecu
 config = {
     'user': 'pabloreal',
     'password': 'xxxx',
-    'host': 'localhost',
+    'host': '10.0.0.2',
     'database': 'gnocchi',
 }
 

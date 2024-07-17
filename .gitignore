@@ -5,3 +5,5 @@
 filesystems/
 openstack-images/
 images/
+conf/terraform/terraform.tfstate.backup
+conf/terraform/instance-module/.terraform.tfstate.lock.info
