@@ -1,4 +1,11 @@
 
+# Lista de los servidores a desplegar
+variable "server_list" {
+  description = "List of server numbers to create"
+  type        = list(string)
+  default     = ["1", "2", "3"]  
+}
+
 # Redes y Subredes
 resource "openstack_networking_network_v2" "net1" {
   name = "Net1"
@@ -66,62 +73,7 @@ resource "openstack_networking_secgroup_rule_v2" "security_group_rule_engress" {
   security_group_id = openstack_networking_secgroup_v2.my_security_group.id
 }
 
-# Puertos Net1
-resource "openstack_networking_port_v2" "port1_net1" {
-  network_id       = openstack_networking_network_v2.net1.id
-  name             = "port1_net1"
-  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.subnet1.id
-  }
-}
-
-resource "openstack_networking_port_v2" "port2_net1" {
-  network_id       = openstack_networking_network_v2.net1.id
-  name             = "port2_net1"
-  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.subnet1.id
-  }
-}
-
-resource "openstack_networking_port_v2" "port3_net1" {
-  network_id       = openstack_networking_network_v2.net1.id
-  name             = "port3_net1"
-  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.subnet1.id
-  }
-}
-
-# Puertos Net2
-resource "openstack_networking_port_v2" "port1_net2" {
-  network_id       = openstack_networking_network_v2.net2.id
-  name             = "port1_net2"
-  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.subnet2.id
-  }
-}
-
-resource "openstack_networking_port_v2" "port2_net2" {
-  network_id       = openstack_networking_network_v2.net2.id
-  name             = "port2_net2"
-  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.subnet2.id
-  }
-}
-
-resource "openstack_networking_port_v2" "port3_net2" {
-  network_id       = openstack_networking_network_v2.net2.id
-  name             = "port3_net2"
-  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.subnet2.id
-  }
-}
-
+# Puertos BBDD y Admin
 resource "openstack_networking_port_v2" "portBBDD_net2" {
   network_id       = openstack_networking_network_v2.net2.id
   name             = "portBBDD_net2"
@@ -132,7 +84,6 @@ resource "openstack_networking_port_v2" "portBBDD_net2" {
   }
 }
 
-# Puerto Acceso Admin
 resource "openstack_networking_port_v2" "port_admin1" {
   network_id       = openstack_networking_network_v2.net1.id
   name             = "port_admin1"
@@ -164,104 +115,8 @@ resource "openstack_networking_floatingip_v2" "floating_ipAdmin" {
   port_id = openstack_networking_port_v2.port_admin1.id
 }
 
-# Load Balancer
-resource "openstack_lb_loadbalancer_v2" "load_balancer" {
-  vip_subnet_id = openstack_networking_subnet_v2.subnet1.id
-  name = "load_balancer"
-}
 
-resource "openstack_lb_listener_v2" "lb_listener" {
-  name           = "lb_listener"
-  protocol       = "HTTP"
-  protocol_port  = 80
-  loadbalancer_id = openstack_lb_loadbalancer_v2.load_balancer.id
-}
-
-resource "openstack_lb_pool_v2" "lb_pool" {
-  name          = "lb_pool"
-  lb_method     = "ROUND_ROBIN"
-  protocol      = "HTTP"
-  listener_id   = openstack_lb_listener_v2.lb_listener.id
-}
-
-# Neceaario para añadir un nuevo miembro al pool del load_balancer
-output "lb_pool_id" {
-  value = openstack_lb_pool_v2.lb_pool.id
-}
-
-resource "openstack_lb_members_v2" "lb_members" {
-  pool_id = openstack_lb_pool_v2.lb_pool.id
-
-  member {
-    address       = openstack_compute_instance_v2.s1.network[0].fixed_ip_v4
-    protocol_port = 80
-  }
-  member {
-    address       = openstack_compute_instance_v2.s2.network[0].fixed_ip_v4
-    protocol_port = 80
-  }
-  member {
-    address       = openstack_compute_instance_v2.s3.network[0].fixed_ip_v4
-    protocol_port = 80
-  }
-}
-
-# Servidores
-resource "openstack_compute_instance_v2" "s1" {
-  name       = "s1"
-  image_name = data.openstack_images_image_v2.focal-servers-vnx.name
-  flavor_name = data.openstack_compute_flavor_v2.m1-large.name
-  network {
-    port = openstack_networking_port_v2.port1_net1.id
-  }
-  network {
-    port = openstack_networking_port_v2.port1_net2.id
-  }
-  key_pair = data.openstack_compute_keypair_v2.s1.name
-  user_data = <<-EOT
-    #!/bin/bash
-    systemctl start apache2
-    echo "<h1>Bienvenidos al Servidor s1</h1>" > /var/www/html/index.html
-  EOT
-}
-
-resource "openstack_compute_instance_v2" "s2" {
-  name       = "s2"
-  image_name = data.openstack_images_image_v2.focal-servers-vnx.name
-  flavor_name = data.openstack_compute_flavor_v2.m1-large.name
-  network {
-    port = openstack_networking_port_v2.port2_net1.id
-  }
-  network {
-    port = openstack_networking_port_v2.port2_net2.id
-  }
-  key_pair = data.openstack_compute_keypair_v2.s2.name
-  user_data = <<-EOT
-    #!/bin/bash
-    systemctl start apache2
-    echo "<h1>Bienvenidos al Servidor s2</h1>" > /var/www/html/index.html
-  EOT
-}
-
-resource "openstack_compute_instance_v2" "s3" {
-  name       = "s3"
-  image_name = data.openstack_images_image_v2.focal-servers-vnx.name
-  flavor_name = data.openstack_compute_flavor_v2.m1-large.name
-  network {
-    port = openstack_networking_port_v2.port3_net1.id
-  }
-  network {
-    port = openstack_networking_port_v2.port3_net2.id
-  }
-  key_pair = data.openstack_compute_keypair_v2.s3.name
-  user_data = <<-EOT
-    #!/bin/bash
-    systemctl start apache2
-    echo "<h1>Bienvenidos al Servidor s3</h1>" > /var/www/html/index.html
-  EOT
-}
-
-# Administrador
+# Servidor de administracion
 resource "openstack_compute_instance_v2" "administrador" {
   name       = "administrador"
   image_name = data.openstack_images_image_v2.focal-administrador-vnx.name
@@ -280,7 +135,7 @@ resource "openstack_compute_instance_v2" "administrador" {
   EOT
 }
 
-# BBDD
+# Servidor de BBDD
 resource "openstack_compute_instance_v2" "bbdd" {
   name       = "bbdd"
   image_name = data.openstack_images_image_v2.focal-bbdd-vnx.name
@@ -348,3 +203,81 @@ resource "openstack_fw_group_v2" "group_1" {
   egress_firewall_policy_id = openstack_fw_policy_v2.policy_engress.id
 }
 
+
+# -------------------------------------------------------------------------
+# AUTOESCALADO
+
+# Servidores
+resource "openstack_compute_instance_v2" "server_instance" {
+  for_each = toset(var.server_list)
+  name       = "s${each.value}"
+  image_name = data.openstack_images_image_v2.focal-servers-vnx.name
+  flavor_name = data.openstack_compute_flavor_v2.m1-large.name
+  network {
+    port = openstack_networking_port_v2.port_net1[each.key].id
+  }
+  network {
+    port = openstack_networking_port_v2.port_net2[each.key].id
+  }
+  key_pair = data.openstack_compute_keypair_v2.server_keypair[each.key].name
+  user_data = <<-EOT
+    #!/bin/bash
+    systemctl start apache2
+    echo "<h1>Bienvenidos al Servidor s${each.value}</h1>" > /var/www/html/index.html
+  EOT
+}
+
+# Keypairs, se deben crear desde la CLI anteriormente
+data "openstack_compute_keypair_v2" "server_keypair" {
+  for_each         = toset(var.server_list)
+  name             = "s${each.value}"
+}
+
+# Puertos
+resource "openstack_networking_port_v2" "port_net1" {
+  for_each         = toset(var.server_list)
+  name             = "port${each.value}_net1"
+  network_id       = openstack_networking_network_v2.net1.id
+  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.subnet1.id
+  }
+}
+
+resource "openstack_networking_port_v2" "port_net2" {
+  for_each         = toset(var.server_list)
+  name             = "port${each.value}_net2"
+  network_id       = openstack_networking_network_v2.net2.id
+  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.subnet2.id
+  }
+}
+
+# Load Balancer
+resource "openstack_lb_loadbalancer_v2" "load_balancer" {
+  vip_subnet_id = openstack_networking_subnet_v2.subnet1.id
+  name = "load_balancer"
+}
+
+resource "openstack_lb_listener_v2" "lb_listener" {
+  name           = "lb_listener"
+  protocol       = "HTTP"
+  protocol_port  = 80
+  loadbalancer_id = openstack_lb_loadbalancer_v2.load_balancer.id
+}
+
+resource "openstack_lb_pool_v2" "lb_pool" {
+  name          = "lb_pool"
+  lb_method     = "ROUND_ROBIN"
+  protocol      = "HTTP"
+  listener_id   = openstack_lb_listener_v2.lb_listener.id
+}
+
+# Load Balancer member
+resource "openstack_lb_member_v2" "lb_member" {
+  for_each  = toset(var.server_list)
+  pool_id   = openstack_lb_pool_v2.lb_pool.id
+  address   = openstack_compute_instance_v2.server_instance[each.value].network[0].fixed_ip_v4
+  protocol_port = 80
+}

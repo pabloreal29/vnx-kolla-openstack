@@ -1,20 +1,8 @@
-Importante, utilizar la rama antelope.
 
-COMENTARIOS DE DAVID:
-	- Del escenario de CNVR funciona todo salvo el firewall, pero David ha dicho que por el momento pase.
-	- Hay otro chico con un TFG en el que utiliza Terraform en vez de Heat para crear todos los elementos de la red.
-
-TAREAS ACTUALES:
-	- OK! Buscar donde se almacenan los datos de Ceilometer (es decir, donde Gnocchi almacena estos datos de telemetría).
-		- Ver si se puede conectar Kolla con  para analizar estos datos.
-	- Terminar de configurar Cinder (almacenamiento de bloques).
-	- OK! Configurar Swift (almacenamiento de objetos).
-	- Diseñar una serie de pruebas con un uso de CPU concreto (ej: 40%, 50%, 60%) para ver cuándo se escala.
-	- OK! Mirar documentación Skyline (nueva interfaz Horizon) y ver si se puede implementar en Kolla. Intercambiar puertos de Skyline y Horizon.
-	
-	- Ver despliegue autoescalado con Terraform.
-	- Ver implementación Grafana.
-	- Cinder: ver si podemos attachear correctamente los volumenes a las instancias.
+COMENTAR A DAVID:
+	- Enseñar gráficas Grafana (si falla hay imágenes en la carpeta de imágenes).
+	- Enseñar autoescalado (scripts Python, Terraform).
+	- Preguntar sobre arquitectura global, concretamente sobre cómo salen a Internet los servidores creados dentro de OpenStack.
 	
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	
@@ -86,6 +74,22 @@ gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c
 
 RAM: gnocchi measures show --aggregation mean {ram_id} --sort-column timestamp --sort-descending -f csv
 CPU: gnocchi aggregates '(* (/ (aggregate rate:mean) 60000000000.0) 100)' id={resource_id} --sort-column timestamp --sort-descending -f csv
+
+Descomposición del comando
+
+    gnocchi aggregates: Este es el comando principal que se usa para calcular agregados de series temporales en Gnocchi. Gnocchi es un sistema de almacenamiento de series temporales optimizado para el almacenamiento y consulta de grandes volúmenes de datos de métricas.
+
+    '(* (/ (aggregate rate:mean (metric cpu mean)) 60000000000.0) 100)': Esta parte es una expresión matemática que define el cálculo que queremos realizar. La expresión está escrita en una notación polaca inversa (RPN) que es común en algunas calculadoras y en ciertos contextos de programación. Vamos a descomponer esta expresión paso a paso:
+
+        (metric cpu mean): Esto selecciona la métrica llamada cpu y aplica la agregación mean (media) sobre ella. La métrica cpu debe estar previamente definida en Gnocchi.
+
+        (aggregate rate:mean ...): Aquí se aplica una agregación adicional rate:mean a la métrica cpu agregada previamente. rate:mean calcula la media de la tasa de cambio de la métrica cpu. En otras palabras, está calculando el promedio de la tasa de cambio de uso de CPU.
+
+        (/ ... 60000000000.0): La tasa de cambio calculada se divide por 60000000000.0. Este valor probablemente se usa para convertir nanosegundos (ns) a segundos (s) o alguna otra unidad de tiempo. Dado que 60000000000.0 es el número de nanosegundos en un minuto (60 * 10^9), esta división puede estar normalizando la tasa de cambio a minutos.
+
+        (* ... 100): Finalmente, el resultado de la división anterior se multiplica por 100 para convertir la tasa de cambio a un porcentaje. Esto es común cuando se trata de métricas de utilización, donde los valores se representan como porcentajes.
+
+    id={cpu_id}: Este es el identificador del recurso al que pertenece la métrica cpu. {cpu_id} debe ser reemplazado por el identificador real del recurso específico que estás consultando en Gnocchi.
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 

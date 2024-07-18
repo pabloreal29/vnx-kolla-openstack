@@ -9,8 +9,11 @@ from tkinter import messagebox
 # Límites a considerar
 SAMPLE_NUMBER = 3
 MAX_SERVERS = 5
-CPU_THRESHOLD = 300
-AVG_CPU_THRESHOLD = 180
+MIN_SERVERS = 2
+HIGH_RAM_THRESHOLD = 300
+AVG_HIGH_RAM_THRESHOLD = 200
+LOW_RAM_THRESHOLD = 100
+AVG_LOW_RAM_THRESHOLD = 165
 
 # Define the path to your existing script
 create_tables_script = "deploy/create-ram-tables.py"
@@ -30,7 +33,7 @@ config = {
     'database': 'gnocchi',
 }
 
-# Configuración del mensaje de alerta que salta cuando se detecta un uso excesivo de CPU
+# Configuración del mensaje de alerta que salta cuando se detecta un uso excesivo de RAM    
 def show_alert(title, message):
     root = tk.Tk()
     root.withdraw()  # Oculta la ventana principal de Tkinter
@@ -127,8 +130,12 @@ def main():
                 print(f"    Uso de RAM en s{i}: {last_values}")
             
                 # Verificar si alguno de los últimos valores es mayor que el threshold
-                if any(value > CPU_THRESHOLD for value in last_values):
+                if any(value > HIGH_RAM_THRESHOLD for value in last_values):
                     print(f"*** Detectado un uso excesivo de RAM en el servidor s{i} ***")
+                
+                # Verificar si alguno de los últimos valores es mayor que el threshold
+                elif any(value < LOW_RAM_THRESHOLD for value in last_values):
+                    print(f"*** Detectado un uso insuficiente de RAM en el servidor s{i} ***")
 
             # Check RAM values for the table ram_average to see if upscaling is needed
             table_name_avg = "ram_average"
@@ -136,7 +143,7 @@ def main():
             print(f"    Valor medio del uso de RAM en los {server_number} servidores del escenario: {last_values_avg}")
 
             # Verificar si alguno de los últimos valores es mayor que el threshold
-            if any(value_avg > AVG_CPU_THRESHOLD for value_avg in last_values_avg):
+            if any(value_avg > AVG_HIGH_RAM_THRESHOLD for value_avg in last_values_avg):
                 print(f"*** Detectado un valor medio excesivo de uso de RAM ***")
                 show_alert("ALARMA: Uso Excesivo de RAM", "Detectado un uso excesivo de memoria en los servidores del escenario. Escalando hacia arriba...")
             
@@ -147,8 +154,29 @@ def main():
                     disconnect_to_mysql(cnx, cursor)
                     exit()
                 else:
-                    subprocess.run(f"{deploy_instance_command} {server_number + 1}", shell=True, check=True)
-                    print(f"Instancia adicional creada. Deteniendo la ejecución del script.")
+                    server_list = [f'"{i}"' for i in range(1, server_number + 2)]
+                    server_list_str = "[" + ", ".join(server_list) + "]"
+                    subprocess.run(f'{deploy_instance_command} "{server_list_str}"', shell=True, check=True)
+                    print(f"Instancia adicional creada. Deteniendo la ejecución del script...")
+                    disconnect_to_mysql(cnx, cursor)
+                    exit() 
+            
+            # Verificar si alguno de los últimos valores es mayor que el threshold
+            elif any(value_avg < AVG_LOW_RAM_THRESHOLD for value_avg in last_values_avg):
+                print(f"*** Detectado un valor medio insuficiente de uso de RAM ***")
+                show_alert("ALARMA: Uso Insuficiente de RAM", "Detectado un uso insuficiente de memoria en los servidores del escenario. Escalando hacia abajo...")
+            
+                # Verificar si ya está creado el mínimo número de servidores
+                if(server_number <= MIN_SERVERS):
+                    show_alert("ALARMA: Número Mínimo de Servidores Alcanzado", "Se ha alcanzado el número mínimo de servidores definido. Deteniendo la ejecución del script")
+                    print(f"Ya está desplegado el mínimo número de servidores. Deteniendo la ejecución del script...")
+                    disconnect_to_mysql(cnx, cursor)
+                    exit()
+                else:
+                    server_list = [f'"{i}"' for i in range(1, server_number)]
+                    server_list_str = "[" + ", ".join(server_list) + "]"
+                    subprocess.run(f'{deploy_instance_command} "{server_list_str}"', shell=True, check=True)
+                    print(f"Instancia adicional eliminada. Deteniendo la ejecución del script...")
                     disconnect_to_mysql(cnx, cursor)
                     exit() 
             

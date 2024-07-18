@@ -32,7 +32,7 @@ def drop_tables(cursor):
             cursor.execute(f"DROP TABLE IF EXISTS {table}")
         except mysql.connector.Error as err:
             print(f"Error al eliminar la tabla {table}: {err}")
-    print(f"Tablas eliminadas existosamente")
+    print(f"Tablas eliminadas existosamente.")
 
 # Función principal
 def main():
