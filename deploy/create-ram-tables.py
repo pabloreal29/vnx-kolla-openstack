@@ -13,6 +13,9 @@ config = {
     'database': 'gnocchi',
 }
 
+# Numero de muestras mas recientes que se quiere almacenar por cada tabla
+NUM_REGISTROS = 30
+
 # Funcion para ejecutar comando y obtener la salida
 def execute_command(command):
     try:
@@ -219,12 +222,15 @@ def main():
     else:
         print("No se pueden obtener los datos de las métricas desde gnocchi.")
 
-    # Consultas SQL para obtener los IDs de métricas de memoria para 's1', 's2' y 's3'
-    queries = [
-        "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'memory.usage' AND servers.name = 's1';",
-        "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'memory.usage' AND servers.name = 's2';",
-        "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'memory.usage' AND servers.name = 's3';"
-    ]
+    # Consultas SQL para obtener los IDs de métricas de memoria para 's1', 's2', 's3', 's4' y 's5' 
+    server_names = ['s1', 's2', 's3', 's4', 's5']
+
+    # Lista para almacenar las queries para obtener los datos de cada tabla
+    queries = []
+
+    for server in server_names:
+        query = f"SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'memory.usage' AND servers.name = '{server}';"
+        queries.append(query)
 
     # Lista para almacenar los IDs de métricas
     ram_ids = []
@@ -243,6 +249,9 @@ def main():
     for i, ram_id in enumerate(ram_ids, start=1):
         print(f"El ID de la métrica correspondiente al uso de RAM en el servidor s{i} es:", ram_id)
 
+    # Contador para verificar el numero de servidores con datos insertados
+    servers_with_data = 0
+
     # Ejecutar el comando para obtener las medidas y obtener el resultado como CSV
     for i, ram_id in enumerate(ram_ids, start=1):
         measures_command = f"gnocchi measures show --aggregation mean {ram_id} --sort-column timestamp --sort-descending -f csv"
@@ -256,9 +265,13 @@ def main():
                 
                 # Asegurar que las columnas esperadas estén presentes en el DataFrame
                 if 'timestamp' in df.columns and 'granularity' in df.columns and 'value' in df.columns:
+
+                    # Obtener los últimos 30 registros para cada servidor
+                    df_last_30 = df.head(NUM_REGISTROS + 1)
+
                     # Insertar los datos en la tabla ram_s{i}
                     table_name = f"ram_s{i}"
-                    for _, row in df.iterrows():
+                    for _, row in df_last_30.iterrows():
                         try:
                             cursor.execute(f"""
                                 INSERT IGNORE INTO {table_name} (timestamp, granularity, value)
@@ -267,7 +280,16 @@ def main():
                         except mysql.connector.Error as err:
                             print(f"Error al insertar datos en {table_name}: {err}")
                     cnx.commit()
-                    print(f"Datos del uso de la RAM en s{i} insertados exitosamente.")
+
+                    # Comprobar si la tabla no está vacía
+                    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                    count = cursor.fetchone()[0]
+                    
+                    if count > 0:
+                        servers_with_data += 1
+                        print(f"Datos del uso de la RAM en {table_name} insertados exitosamente.")
+                    else:
+                        print(f"Por el momento, no existen datos de uso de RAM que se puedan almacenar en la tabla {table_name}.")
                 else:
                     print(f"El DataFrame no contiene las columnas esperadas: {df.columns}")
             except pd.errors.EmptyDataError:
@@ -276,7 +298,7 @@ def main():
             print(f"No se pudo obtener el resultado de las medidas del uso de la RAM en s{i}.")
 
     # Crear la tabla ram_average, que contiene la media aritmética de uso de RAM de los servidores
-    calculate_and_store_averages(cursor, len(ram_ids))
+    calculate_and_store_averages(cursor, servers_with_data)
 
     # Confirmar los cambios y cerrar la conexión
     cnx.commit()

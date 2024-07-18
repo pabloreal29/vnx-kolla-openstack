@@ -84,6 +84,9 @@ gnocchi measures show --aggregation mean --granularity 60 0f5c6528-4abe-4cf6-92c
 
 800000000.0
 
+RAM: gnocchi measures show --aggregation mean {ram_id} --sort-column timestamp --sort-descending -f csv
+CPU: gnocchi aggregates '(* (/ (aggregate rate:mean) 60000000000.0) 100)' id={resource_id} --sort-column timestamp --sort-descending -f csv
+
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 MYSQL

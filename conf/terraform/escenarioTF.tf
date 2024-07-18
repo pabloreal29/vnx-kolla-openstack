@@ -153,7 +153,7 @@ resource "openstack_networking_port_v2" "port_admin2" {
 
 # IPs Flotantes
 resource "openstack_networking_floatingip_v2" "floating_ipLB" {
-  description = "IP Flotante del alanceador de Carga"
+  description = "IP Flotante del Balanceador de Carga"
   pool = data.openstack_networking_network_v2.extnet.name
   port_id = openstack_lb_loadbalancer_v2.load_balancer.vip_port_id
 }

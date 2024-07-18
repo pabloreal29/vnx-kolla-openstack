@@ -4,7 +4,6 @@ import mysql.connector
 from mysql.connector import errorcode
 import subprocess
 import io
-import argparse
 
 # Configuración de la conexión a MySQL
 config = {
@@ -13,6 +12,9 @@ config = {
     'host': '10.0.0.2',
     'database': 'gnocchi',
 }
+
+# Numero de muestras mas recientes que se quiere almacenar por cada tabla
+NUM_REGISTROS = 30
 
 # Funcion para ejecutar comando y obtener la salida
 def execute_command(command):
@@ -44,10 +46,9 @@ def drop_tables(cursor):
     for table in tables:
         try:
             cursor.execute(f"DROP TABLE IF EXISTS {table}")
-            print(f"Tabla {table} eliminada exitosamente.")
         except mysql.connector.Error as err:
             print(f"Error al eliminar la tabla {table}: {err}")
-
+    
 # Creación de las tablas necesarias
 def create_servers_table(cursor):
     try:
@@ -94,6 +95,7 @@ def create_measures_table(cursor):
             cursor.execute("USE gnocchi")
             cursor.execute(f"""
                 CREATE TABLE IF NOT EXISTS {table_name} (
+                    name VARCHAR(50),
                     timestamp DATETIME NOT NULL PRIMARY KEY,
                     granularity FLOAT,
                     value DOUBLE
@@ -221,12 +223,15 @@ def main():
     else:
         print("No se pueden obtener los datos de las métricas desde gnocchi.")
 
-    # Consultas SQL para obtener los IDs de métricas de CPU para 's1', 's2' y 's3'
-    queries = [
-        "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'cpu' AND servers.name = 's1';",
-        "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'cpu' AND servers.name = 's2';",
-        "SELECT metrics.id FROM metrics INNER JOIN servers ON metrics.resource_id = servers.ID WHERE metrics.name = 'cpu' AND servers.name = 's3';"
-    ]
+    # Consultas SQL para obtener los IDs de métricas de memoria para 's1', 's2', 's3', 's4' y 's5' 
+    server_names = ['s1', 's2', 's3', 's4', 's5']
+
+    # Lista para almacenar las queries para obtener los datos de cada tabla
+    queries = []
+
+    for server in server_names:
+        query = f"SELECT id FROM servers WHERE servers.name = '{server}';"
+        queries.append(query)
 
     # Lista para almacenar los IDs de métricas
     cpu_ids = []
@@ -243,11 +248,14 @@ def main():
 
     # Imprimir los IDs obtenidos
     for i, cpu_id in enumerate(cpu_ids, start=1):
-        print(f"El ID de la métrica correspondiente al uso de CPU en el servidor s{i} es:", cpu_id)
+        print(f"El ID del servidor s{i} es:", cpu_id)
+
+    # Contador para verificar el numero de servidores con datos insertados
+    servers_with_data = 0
 
     # Ejecutar el comando para obtener las medidas y obtener el resultado como CSV
     for i, cpu_id in enumerate(cpu_ids, start=1):
-        measures_command = f"gnocchi measures show --aggregation mean {cpu_id} --sort-column timestamp --sort-descending -f csv"
+        measures_command = f"gnocchi aggregates '(* (/ (aggregate rate:mean (metric cpu mean)) 60000000000.0) 100)' id={cpu_id} --sort-column timestamp --sort-descending -f csv"
         output_servers = execute_command(measures_command)
 
         if output_servers:
@@ -257,19 +265,32 @@ def main():
                 df = df.replace({np.nan: None})
                 
                 # Asegurar que las columnas esperadas estén presentes en el DataFrame
-                if 'timestamp' in df.columns and 'granularity' in df.columns and 'value' in df.columns:
+                if 'name' in df.columns and 'timestamp' in df.columns and 'granularity' in df.columns and 'value' in df.columns:
+
+                    # Obtener los últimos 30 registros para cada servidor
+                    df_last_30 = df.head(NUM_REGISTROS + 1)
+
                     # Insertar los datos en la tabla cpu_s{i}
                     table_name = f"cpu_s{i}"
-                    for _, row in df.iterrows():
+                    for _, row in df_last_30.iterrows():
                         try:
                             cursor.execute(f"""
-                                INSERT IGNORE INTO {table_name} (timestamp, granularity, value)
-                                VALUES (%s, %s, %s)
-                            """, (row['timestamp'], row['granularity'], row['value']))
+                                INSERT IGNORE INTO {table_name} (name, timestamp, granularity, value)
+                                VALUES (%s, %s, %s, %s)
+                            """, (row['name'], row['timestamp'], row['granularity'], row['value']))
                         except mysql.connector.Error as err:
                             print(f"Error al insertar datos en {table_name}: {err}")
                     cnx.commit()
-                    print(f"Datos del uso de la CPU en s{i} insertados exitosamente.")
+
+                    # Comprobar si la tabla no está vacía
+                    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                    count = cursor.fetchone()[0]
+                    
+                    if count > 0:
+                        servers_with_data += 1
+                        print(f"Datos del uso de la CPU en {table_name} insertados exitosamente.")
+                    else:
+                        print(f"Por el momento, no existen datos de uso de CPU que se puedan almacenar en la tabla {table_name}.")
                 else:
                     print(f"El DataFrame no contiene las columnas esperadas: {df.columns}")
             except pd.errors.EmptyDataError:
@@ -278,7 +299,7 @@ def main():
             print(f"No se pudo obtener el resultado de las medidas del uso de la CPU en s{i}.")
 
     # Crear la tabla cpu_average, que contiene la media aritmética de uso de CPU de los servidores
-    calculate_and_store_averages(cursor, len(cpu_ids))
+    calculate_and_store_averages(cursor, servers_with_data)
 
     # Confirmar los cambios y cerrar la conexión
     cnx.commit()

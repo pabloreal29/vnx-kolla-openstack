@@ -7,8 +7,10 @@ import tkinter as tk
 from tkinter import messagebox
 
 # Límites a considerar
-SAMPLE_NUMBER = 5
-CPU_THRESHOLD = 500
+SAMPLE_NUMBER = 3
+MAX_SERVERS = 5
+CPU_THRESHOLD = 300
+AVG_CPU_THRESHOLD = 180
 
 # Define the path to your existing script
 create_tables_script = "deploy/create-ram-tables.py"
@@ -35,7 +37,7 @@ def show_alert(title, message):
     messagebox.showwarning(title, message)
     root.destroy()  # Destruye la ventana después de mostrar la alerta
 
-# Establecer onexión a MySQL
+# Establecer conexión a MySQL
 def connect_to_mysql():
     try:
         cnx = mysql.connector.connect(**config)
@@ -65,7 +67,7 @@ def disconnect_to_mysql(cnx, cursor):
             print(err)
         exit(1)
 
-# Obtiene los últimos 3 valores de la columna value de una tabla ram_s{i} específica.
+# Obtiene los últimos 3 valores de la columna value de una tabla de uso de RAM específica.
 def get_last_ram_values(cursor, table_name):
     try:
         cursor.execute(f"SELECT value FROM {table_name} ORDER BY timestamp DESC LIMIT {SAMPLE_NUMBER}")
@@ -80,10 +82,10 @@ def get_last_ram_values(cursor, table_name):
         return []
 
 
-# Obtener el número de servidores cuyo nombre sigue el patrón s_i
+# Obtener el número de servidores cuyo nombre sigue el patron s_i, utilizando REGEX
 def get_server_count(cursor):
     try:
-        cursor.execute("SELECT COUNT(*) FROM servers WHERE Name LIKE 's\_%'")
+        cursor.execute("SELECT COUNT(*) FROM servers WHERE Name REGEXP '^s[0-9]{1}$'")
         result = cursor.fetchone()
         if result:
             server_count = max(3, result[0]) # Asumiendo que siempre hay al menos 3 servidores (s1, s2, s3)
@@ -103,7 +105,6 @@ def main():
             # Execute the command to delete tables
             print("Ejecutando el comando para eliminar tablas...")
             subprocess.run(delete_tables_command, shell=True, check=True)
-            print("Tablas eliminadas exitosamente.")
 
             # Execute the command to recreate tables
             print("Ejecutando el comando para recrear tablas...")
@@ -118,30 +119,38 @@ def main():
             server_number = get_server_count(cursor)
             print(f"-----------------------------------------------")
 
-            # Check RAM values for each table ram_s{i}
+            # Check RAM values for each table ram_s{i} to see which server is causing the increment
             print(f"Muestra de los últimos {SAMPLE_NUMBER} valores de uso de memoria RAM:")
             for i in range(1, 6):
                 table_name = f"ram_s{i}"
                 last_values = get_last_ram_values(cursor, table_name)
                 print(f"    Uso de RAM en s{i}: {last_values}")
             
-                # Verificar si alguno de los últimos valores es mayor que 3el threshold
+                # Verificar si alguno de los últimos valores es mayor que el threshold
                 if any(value > CPU_THRESHOLD for value in last_values):
                     print(f"*** Detectado un uso excesivo de RAM en el servidor s{i} ***")
-                    show_alert("ALARMA: Uso Excesivo de RAM", "Detectado un uso excesivo de memoria en una de los servidores del escenario. Escalando hacia arriba...")
-                    
-                    # Verificar si ya está creado el máximo número de servidores
-                    if(server_number >= SAMPLE_NUMBER):
-                        show_alert("ALARMA: Número Máximo de Servidores Alcanzado", "Se ha alcanzado el número máximo de servidores definido. Deteniendo la ejecución del script")
-                        print(f"Ya está desplegado el máximo número de servidores. Deteniendo la ejecución del script...")
-                        disconnect_to_mysql(cnx, cursor)
-                        exit()
 
-                    else:
-                        subprocess.run(f"{deploy_instance_command} {server_number + 1}", shell=True, check=True)
-                        print(f"Instancia adicional creada. Deteniendo la ejecución del script.")
-                        disconnect_to_mysql(cnx, cursor)
-                        exit() 
+            # Check RAM values for the table ram_average to see if upscaling is needed
+            table_name_avg = "ram_average"
+            last_values_avg = get_last_ram_values(cursor, table_name_avg)
+            print(f"    Valor medio del uso de RAM en los {server_number} servidores del escenario: {last_values_avg}")
+
+            # Verificar si alguno de los últimos valores es mayor que el threshold
+            if any(value_avg > AVG_CPU_THRESHOLD for value_avg in last_values_avg):
+                print(f"*** Detectado un valor medio excesivo de uso de RAM ***")
+                show_alert("ALARMA: Uso Excesivo de RAM", "Detectado un uso excesivo de memoria en los servidores del escenario. Escalando hacia arriba...")
+            
+                # Verificar si ya está creado el máximo número de servidores
+                if(server_number >= MAX_SERVERS):
+                    show_alert("ALARMA: Número Máximo de Servidores Alcanzado", "Se ha alcanzado el número máximo de servidores definido. Deteniendo la ejecución del script")
+                    print(f"Ya está desplegado el máximo número de servidores. Deteniendo la ejecución del script...")
+                    disconnect_to_mysql(cnx, cursor)
+                    exit()
+                else:
+                    subprocess.run(f"{deploy_instance_command} {server_number + 1}", shell=True, check=True)
+                    print(f"Instancia adicional creada. Deteniendo la ejecución del script.")
+                    disconnect_to_mysql(cnx, cursor)
+                    exit() 
             
             # Confirmar los cambios y cerrar la conexión
             disconnect_to_mysql(cnx, cursor)
