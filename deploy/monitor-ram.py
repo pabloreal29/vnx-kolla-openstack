@@ -10,10 +10,12 @@ from tkinter import messagebox
 SAMPLE_NUMBER = 3
 MAX_SERVERS = 5
 MIN_SERVERS = 2
+
+# Considerar valores estandar de RAM en torno a 165 MB
 HIGH_RAM_THRESHOLD = 300
 AVG_HIGH_RAM_THRESHOLD = 200
 LOW_RAM_THRESHOLD = 100
-AVG_LOW_RAM_THRESHOLD = 165
+AVG_LOW_RAM_THRESHOLD = 150
 
 # Define the path to your existing script
 create_tables_script = "deploy/create-ram-tables.py"

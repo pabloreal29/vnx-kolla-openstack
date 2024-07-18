@@ -10,6 +10,8 @@ from tkinter import messagebox
 SAMPLE_NUMBER = 3
 MAX_SERVERS = 5
 MIN_SERVERS = 2
+
+# Considerar valores estandar de CPU en torno a 0.65%
 HIGH_CPU_THRESHOLD = 80
 LOW_CPU_THRESHOLD = 0.4
 
