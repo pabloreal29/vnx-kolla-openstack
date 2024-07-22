@@ -12,26 +12,19 @@ if [ "$1" == "-s" ]; then
     openstack firewall group rule create --protocol tcp --destination-ip-address $ip_port_admin1 --destination-port 2022 --action allow --name ssh_admin 
     openstack firewall group rule create --protocol tcp --destination-ip-address $lb_ip --destination-port 80 --action allow --name www_lb 
     openstack firewall group rule create --protocol any --source-ip-address $subnet1_cidr --action allow --name server_connection 
-    openstack firewall group policy create --firewall-rule ssh_admin --firewall-rule www_lb my_policy_ingress 
-    openstack firewall group policy create --firewall-rule server_connection my_policy_egress
-    openstack firewall group create --ingress-firewall-policy my_policy_ingress --egress-firewall-policy  my_policy_egress --port $router_port --name my_fw_group
+    openstack firewall group policy create --firewall-rule ssh_admin --firewall-rule www_lb firewall_ingress_policy 
+    openstack firewall group policy create --firewall-rule server_connection firewall_egress_policy
+    openstack firewall group create --ingress-firewall-policy firewall_ingress_policy --egress-firewall-policy  firewall_egress_policy --port $router_port --name firewall_group
     
     echo "Se ha configurado el firewall"
 
 elif [ "$1" == "-n" ]; then
-    openstack firewall group set --no-ingress-firewall-policy my_fw_group
-    openstack firewall group set --no-egress-firewall-policy my_fw_group
-    openstack firewall group delete my_fw_group
-    openstack firewall group policy delete my_policy_ingress
-    openstack firewall group policy delete my_policy_egress
-    openstack firewall group rule delete ssh_admin
-    openstack firewall group rule delete www_lb
-    openstack firewall group rule delete server_connection
-    
+    openstack firewall group set --no-ingress-firewall-policy firewall_group
+    openstack firewall group set --no-egress-firewall-policy firewall_group   
     echo "Se ha deshabilitado el firewall"
 
 else 
     echo "Se ha introducido un parámetro no válido. Solamente se permiten las siguientes opciones:"
-    echo "- Parámetro -s: Configurar firewall"
-    echo "- Parámetro -n: Deshabilitar firewall"
+    echo "- Parámetro -s: Permitir acceso por SSH al puerto 2022 del administrador"
+    echo "- Parámetro -n: Denegar acceso por SSH al puerto 2022 del administrador"
 fi

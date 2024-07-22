@@ -72,7 +72,7 @@ def disconnect_to_mysql(cnx, cursor):
             print(err)
         exit(1)
 
-# Obtiene los últimos 3 valores de la columna value de una tabla de uso de RAM específica.
+# Obtiene los últimos {SAMPLE_NUMBER} valores de la columna value de una tabla de uso de RAM específica.
 def get_last_ram_values(cursor, table_name):
     try:
         cursor.execute(f"SELECT value FROM {table_name} ORDER BY timestamp DESC LIMIT {SAMPLE_NUMBER}")

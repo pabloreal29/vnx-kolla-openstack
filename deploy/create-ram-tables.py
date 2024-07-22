@@ -14,7 +14,7 @@ config = {
 }
 
 # Numero de muestras mas recientes que se quiere almacenar por cada tabla
-NUM_REGISTROS = 30
+NUM_REGISTROS = 50
 
 # Funcion para ejecutar comando y obtener la salida
 def execute_command(command):
@@ -267,7 +267,7 @@ def main():
                 if 'timestamp' in df.columns and 'granularity' in df.columns and 'value' in df.columns:
 
                     # Obtener los últimos 30 registros para cada servidor
-                    df_last_30 = df.head(NUM_REGISTROS + 1)
+                    df_last_30 = df.head(NUM_REGISTROS)
 
                     # Insertar los datos en la tabla ram_s{i}
                     table_name = f"ram_s{i}"

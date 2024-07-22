@@ -19,6 +19,15 @@ ALERTAS
  	
 apt-get install -Y python3-tk
 
+
+GNOCCHI PLUGINN GRAFANA (NO SE PUEDE INSTALAR UNA VERSION TAN ANTIGUA DE GRAFANA, SOLO LA V9.1.0)
+
+El plugin utiliza AngularJS, versión antigua de Angular ya deprecada.
+	logger=plugins.validator.angular t=2024-07-19T08:13:08.795062689Z level=error msg="Refusing to initialize plugin because it's using Angular, which has been disabled" pluginId=gnocchixyz-gnocchi-datasource
+	logger=plugins.validation t=2024-07-19T08:13:08.795097842Z level=error msg="Plugin validation failed" pluginId=gnocchixyz-gnocchi-datasource error="angular plugins are not supported"
+		
+Si la versión de Grafana es v10.1.0 o posterior, hay problemas. La versión actual es la v11.1.0.
+Para poder utilizar el plugin, vamos a volver a una version de grafana como 9.1.0. Para ello, hay que editar el parámetro grafana_tag, dentro de /root/kolla/share/kolla-ansible/ansible/roles/grafana/defaults/main.yml.
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CONGELAR IMAGENES
 
