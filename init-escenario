@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#Borrar la línea que incluye la ruta /home/giros dentro de ./filesystems/rootfs_lxc_ubuntu64-ostack-controller/config
-# sudo sed -i '/lxc.mount.entry = \/home\/giros\/vnx-lab-openstack-antelope\/shared \/root\/.vnx\/scenarios\/openstack_lab-antelope\/vms\/controller\/mnt\/rootfs\/\/root\/shared none bind 0 0/d' ./filesystems/rootfs_lxc_ubuntu64-ostack-controller/config
-
 # Almacenar las claves del nodo admin
 scp root@admin:/etc/kolla/admin-openrc.sh conf/
 
@@ -17,7 +14,7 @@ source deploy/habilitar-nat.sh
 #Cargar imagenes y crear red externa
 OSTACKLAB=openstack_kolla_ansible_2024_1.xml
 sudo vnx -f $OSTACKLAB -x create-extnet
-sudo vnx -f $OSTACKLAB -x load-trove
+# sudo vnx -f $OSTACKLAB -x load-trove
 sudo vnx -f $OSTACKLAB -x load-octavia
 sudo vnx -f $OSTACKLAB -x load-img
 
@@ -47,20 +44,19 @@ openstack image create focal-servers-vnx --file images/servers_image.qcow2 --dis
 openstack image create focal-bbdd-vnx --file images/bbdd_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 openstack image create focal-administrador-vnx --file images/administrador_image.qcow2 --disk-format qcow2 --container-format bare --public --progress
 
-#Crear el flavor de la bbdd (con el m1.smaller no puede ejecutar Mongo, necesita mas capacidad)
-#Nota: he reducido las vcpus y la ram respecto al trabajo de cnvr
+#Crear el flavor de la bbdd (Nota: con m1.smaller no se puede ejecutar MongoDB)
 openstack flavor create m1.large --vcpus 1 --ram 512 --disk 5
 
-#Crear un contenedor con una copia de la bbdd de estudiantes
-openstack container create students-container
-openstack object create students-container --name studentsBBDD.json deploy/servers/students.json
+# #Crear un contenedor con una copia de la bbdd de estudiantes
+# openstack container create students-container
+# openstack object create students-container --name studentsBBDD.json deploy/servers/students.json
 
-#Crear instancia de trove
-trove_net_id=$(openstack net show trove-mgmt-net -c id -f value)
-openstack database instance create my_db --flavor m1.large --size 5 --nic net-id=$net2_id --nic net-id=$trove_net_id --datastore mysql --datastore-version 5.7.29 --is-public --allowed-cidr 0.0.0.0/0 --locality affinity --database testdb --users spatel:mypassword 
+# #Crear instancia de trove
+# trove_net_id=$(openstack net show trove-mgmt-net -c id -f value)
+# openstack database instance create my_db --flavor m1.large --size 5 --nic net-id=$net2_id --nic net-id=$trove_net_id --datastore mysql --datastore-version 5.7.29 --is-public --allowed-cidr 0.0.0.0/0 --locality affinity --database testdb --users spatel:mypassword 
 
 # #Crear el stack con todos los elementos del escenario
-# openstack stack create -t deploy/escenarioTF.yml my_stack
+# openstack stack create -t deploy/escenarioTF_ASG.yaml my_stack
 
 # #Esperar a que se cree el router del escenario antes de asignarle el firewall 
 # sleep 60

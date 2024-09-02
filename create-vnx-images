@@ -1,45 +1,40 @@
 #!/bin/bash
-# Ejecutar: source ./create-vnx-images
 
-OSTACKLAB=openstack_kolla_ansible_2024_1.xml
+OSTACKLAB=openstack_kolla_ansible_2024_1_no_swift.xml
 sudo vnx -f $OSTACKLAB -v --shutdown
-sudo rm -rf filesystems && mkdir -p filesystems && cd filesystems
-VNXDIR=$( vnx -V | grep "VNX dir" | cut -d "=" -f 2 | sed -e "s,~,${HOME}," )
 
-# controller image
-cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-controller.qcow2
-cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/controller/fs/root_cow_fs tmp-diff-controller.qcow2
-qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-controller.qcow2 tmp-diff-controller.qcow2
-qemu-img commit tmp-diff-controller.qcow2
-rm tmp-diff-controller.qcow2
+SCENARIO='openstack_kolla_openstack'
+VNXDIR=$( sudo vnx -V | grep "VNX dir" | cut -d "=" -f 2 | sed -e "s,~,${HOME}," )
+BASEIMG='/usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2'
 
-# network image
-cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-network.qcow2
-cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/network/fs/root_cow_fs tmp-diff-network.qcow2
-qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-network.qcow2 tmp-diff-network.qcow2
-qemu-img commit tmp-diff-network.qcow2
-rm tmp-diff-network.qcow2
+echo "--"
+echo "-- Consolidating vm images of scenario '$SCENARIO'"
+echo "--   BASEIMG = $BASEIMG"
+echo "--   VNXDIR  = $VNXDIR"
 
-# compute1 image
-cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute1.qcow2
-cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/compute1/fs/root_cow_fs tmp-diff-compute1.qcow2
-qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute1.qcow2 tmp-diff-compute1.qcow2
-qemu-img commit tmp-diff-compute1.qcow2
-rm tmp-diff-compute1.qcow2
+VMS="controller network compute1 compute2 compute3 tf-node"
+cd filesystems3/
 
-# compute2 image
-cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute2.qcow2
-cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/compute2/fs/root_cow_fs tmp-diff-compute2.qcow2
-qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute2.qcow2 tmp-diff-compute2.qcow2
-qemu-img commit tmp-diff-compute2.qcow2
-rm tmp-diff-compute2.qcow2
+for VMNAME in $VMS; do
 
-# compute3 image
-cp /usr/share/vnx/filesystems/vnx_rootfs_kvm_ubuntu64-22.04-v025.qcow2 vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute3.qcow2
-cp $VNXDIR/scenarios/openstack_kolla_openstack/vms/compute3/fs/root_cow_fs tmp-diff-compute3.qcow2
-qemu-img rebase -F qcow2 -b vnx_rootfs_kvm_ubuntu64-22.04-v025-kolla-compute3.qcow2 tmp-diff-compute3.qcow2
-qemu-img commit tmp-diff-compute3.qcow2
-rm tmp-diff-compute3.qcow2
+  NEWIMG="vnx_rootfs_kvm_ubuntu64-22.04-v025-ostack-$VMNAME.qcow2"
 
-cd ..
-sudo vnx -f $OSTACKLAB -v --destroy
+  echo "--"
+  echo "-- Creating consolidated image for vm '$VMNAME'..."
+  echo "--   NEWIMG  = $NEWIMG"
+  # Delete existing image (in case it exists)
+  sudo rm -f $NEWIMG
+  # Copy base rootfs image
+  sudo cp -v $BASEIMG $NEWIMG
+  # Copy vm diff image
+  sudo cp -v $VNXDIR/scenarios/$SCENARIO/vms/$VMNAME/fs/root_cow_fs tmp-diff-$VMNAME.qcow2
+  ls -lh $BASEIMG tmp-diff-$VMNAME.qcow2
+  # Merge diff image with new image
+  sudo qemu-img rebase -F qcow2 -b $NEWIMG tmp-diff-$VMNAME.qcow2
+  sudo qemu-img commit tmp-diff-$VMNAME.qcow2
+  sudo rm tmp-diff-$VMNAME.qcow2
+  sudo rm -f rootfs_ostack_$VMNAME
+  sudo ln -s $NEWIMG rootfs_ostack_$VMNAME
+  sudo chown $USER.$USER $NEWIMG rootfs_ostack_$VMNAME
+
+done

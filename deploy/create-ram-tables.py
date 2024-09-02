@@ -14,7 +14,7 @@ config = {
 }
 
 # Numero de muestras mas recientes que se quiere almacenar por cada tabla
-NUM_REGISTROS = 50
+NUM_REGISTROS = 100
 
 # Funcion para ejecutar comando y obtener la salida
 def execute_command(command):

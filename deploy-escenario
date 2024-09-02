@@ -1,6 +1,5 @@
 #!/bin/bash
-
-source conf/admin-openrc.sh
+source conf/admin-openrc.sh #Adquirir credenciales 
 
 if [ "$1" == "create" ]; then
     ssh root@tf-node << 'EOF'
@@ -9,7 +8,6 @@ if [ "$1" == "create" ]; then
     terraform plan 
     terraform apply -auto-approve
 EOF
-
 elif [ "$1" == "destroy" ]; then
     ssh root@tf-node << 'EOF'
     cd shared/ 
@@ -21,19 +19,14 @@ EOF
 
 elif [ "$1" == "enable" ] && [ "$2" == "ram" ]; then
     python3 deploy/create-ram-tables.py
-
 elif [ "$1" == "enable" ] && [ "$2" == "cpu" ]; then
     python3 deploy/create-cpu-tables.py
-
 elif [ "$1" == "monitor" ] && [ "$2" == "ram" ]; then
     python3 deploy/monitor-ram.py
-
 elif [ "$1" == "monitor" ] && [ "$2" == "cpu" ]; then
     python3 deploy/monitor-cpu.py
-
 elif [ "$1" == "drop" ]; then
     python3 deploy/drop-tables.py
-
 else 
     echo "Se ha introducido un parámetro no válido. Solamente se permiten las siguientes opciones:"
     echo "- Parámetro create: Crear el escenario completo."

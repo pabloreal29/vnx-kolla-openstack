@@ -2,7 +2,9 @@
 .kolla-venv
 
 # Do not stage images from nodes (.qcow2)
-filesystems/
+filesystems1/
+filesystems2/
+filesystems3/
 openstack-images/
 images/
 conf/terraform/terraform.tfstate.backup

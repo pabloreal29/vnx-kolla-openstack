@@ -28,17 +28,11 @@ parameters:
     type: string
     description: LB pool where the servers are attached to
     default: lb_pool
-  # indice:
-  #   type: number
-  #   description: Index to create unique resource names
-  #   constraints:
-  #     - modulo: { step: 1, offset: 0 }
 
 resources:
   server:
     type: OS::Nova::Server
     properties:
-      # name: {get_param: indice} 
       image: {get_param: image}
       flavor: {get_param: flavor}
       metadata: {get_param: metadata}

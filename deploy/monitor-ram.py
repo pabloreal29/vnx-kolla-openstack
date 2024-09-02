@@ -13,7 +13,7 @@ MIN_SERVERS = 2
 
 # Considerar valores estandar de RAM en torno a 165 MB
 HIGH_RAM_THRESHOLD = 300
-AVG_HIGH_RAM_THRESHOLD = 200
+AVG_HIGH_RAM_THRESHOLD = 400
 LOW_RAM_THRESHOLD = 100
 AVG_LOW_RAM_THRESHOLD = 150
 
@@ -72,7 +72,7 @@ def disconnect_to_mysql(cnx, cursor):
             print(err)
         exit(1)
 
-# Obtiene los últimos {SAMPLE_NUMBER} valores de la columna value de una tabla de uso de RAM específica.
+# Obtiene los últimos {SAMPLE_NUMBER} valores de la columna value de una tabla de uso de RAM específica
 def get_last_ram_values(cursor, table_name):
     try:
         cursor.execute(f"SELECT value FROM {table_name} ORDER BY timestamp DESC LIMIT {SAMPLE_NUMBER}")
@@ -87,7 +87,7 @@ def get_last_ram_values(cursor, table_name):
         return []
 
 
-# Obtener el número de servidores cuyo nombre sigue el patron s_i, utilizando REGEX
+# Obtiene el número de servidores cuyo nombre sigue el patron s_i
 def get_server_count(cursor):
     try:
         cursor.execute("SELECT COUNT(*) FROM servers WHERE Name REGEXP '^s[0-9]{1}$'")
@@ -107,22 +107,17 @@ def get_server_count(cursor):
 def main():
     while True:
         try:
-            # Execute the command to delete tables
             print("Ejecutando el comando para eliminar tablas...")
             subprocess.run(delete_tables_command, shell=True, check=True)
-
-            # Execute the command to recreate tables
             print("Ejecutando el comando para recrear tablas...")
             subprocess.run(create_tables_command, shell=True, check=True)
             print("Tablas recreadas exitosamente.")
-
             # Conectarse a mysql
             cnx, cursor = connect_to_mysql()
-
             # Store the number of servers s{i}
-            print(f"-----------------------------------------------")
+            print(f"-------------------------------------------")
             server_number = get_server_count(cursor)
-            print(f"-----------------------------------------------")
+            print(f"-------------------------------------------")
 
             # Check RAM values for each table ram_s{i} to see which server is causing the increment
             print(f"Muestra de los últimos {SAMPLE_NUMBER} valores de uso de memoria RAM:")
@@ -130,12 +125,9 @@ def main():
                 table_name = f"ram_s{i}"
                 last_values = get_last_ram_values(cursor, table_name)
                 print(f"    Uso de RAM en s{i}: {last_values}")
-            
-                # Verificar si alguno de los últimos valores es mayor que el threshold
+    
                 if any(value > HIGH_RAM_THRESHOLD for value in last_values):
                     print(f"*** Detectado un uso excesivo de RAM en el servidor s{i} ***")
-                
-                # Verificar si alguno de los últimos valores es mayor que el threshold
                 elif any(value < LOW_RAM_THRESHOLD for value in last_values):
                     print(f"*** Detectado un uso insuficiente de RAM en el servidor s{i} ***")
 

@@ -1,11 +1,3 @@
-
-# Lista de los servidores a desplegar
-variable "server_list" {
-  description = "List of server numbers to create"
-  type        = list(string)
-  default     = ["1", "2", "3"]  
-}
-
 # Redes y Subredes
 resource "openstack_networking_network_v2" "net1" {
   name = "Net1"
@@ -73,15 +65,20 @@ resource "openstack_networking_secgroup_rule_v2" "security_group_rule_engress" {
   security_group_id = openstack_networking_secgroup_v2.my_security_group.id
 }
 
-# Puertos BBDD y Admin
-resource "openstack_networking_port_v2" "portBBDD_net2" {
-  network_id       = openstack_networking_network_v2.net2.id
-  name             = "portBBDD_net2"
-  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
-  fixed_ip {
-    subnet_id = openstack_networking_subnet_v2.subnet2.id
-    ip_address = "10.1.2.83"
-  }
+
+# IPs Flotantes
+resource "openstack_networking_floatingip_v2" "floating_ipLB" {
+  description = "IP Flotante del Balanceador de Carga"
+  pool = data.openstack_networking_network_v2.extnet.name
+  port_id = openstack_lb_loadbalancer_v2.load_balancer.vip_port_id
+}
+
+
+# Servidor administrador
+resource "openstack_networking_floatingip_v2" "floating_ipAdmin" {
+  description = "IP Flotante del servidor de Administración"
+  pool = data.openstack_networking_network_v2.extnet.name
+  port_id = openstack_networking_port_v2.port_admin1.id
 }
 
 resource "openstack_networking_port_v2" "port_admin1" {
@@ -102,21 +99,6 @@ resource "openstack_networking_port_v2" "port_admin2" {
   }
 }
 
-# IPs Flotantes
-resource "openstack_networking_floatingip_v2" "floating_ipLB" {
-  description = "IP Flotante del Balanceador de Carga"
-  pool = data.openstack_networking_network_v2.extnet.name
-  port_id = openstack_lb_loadbalancer_v2.load_balancer.vip_port_id
-}
-
-resource "openstack_networking_floatingip_v2" "floating_ipAdmin" {
-  description = "IP Flotante del servidor de Administración"
-  pool = data.openstack_networking_network_v2.extnet.name
-  port_id = openstack_networking_port_v2.port_admin1.id
-}
-
-
-# Servidor de administracion
 resource "openstack_compute_instance_v2" "administrador" {
   name       = "administrador"
   image_name = data.openstack_images_image_v2.focal-administrador-vnx.name
@@ -136,6 +118,16 @@ resource "openstack_compute_instance_v2" "administrador" {
 }
 
 # Servidor de BBDD
+resource "openstack_networking_port_v2" "portBBDD_net2" {
+  network_id       = openstack_networking_network_v2.net2.id
+  name             = "portBBDD_net2"
+  security_group_ids = [openstack_networking_secgroup_v2.my_security_group.id]
+  fixed_ip {
+    subnet_id = openstack_networking_subnet_v2.subnet2.id
+    ip_address = "10.1.2.83"
+  }
+}
+
 resource "openstack_compute_instance_v2" "bbdd" {
   name       = "bbdd"
   image_name = data.openstack_images_image_v2.focal-bbdd-vnx.name
@@ -182,7 +174,6 @@ resource "openstack_fw_rule_v2" "server_connection_rule" {
 
 resource "openstack_fw_policy_v2" "policy_ingress" {
   name = "firewall_ingress_policy"
-
   rules = [
     openstack_fw_rule_v2.ssh_admin_rule.id,
     openstack_fw_rule_v2.www_lb_rule.id
@@ -191,7 +182,6 @@ resource "openstack_fw_policy_v2" "policy_ingress" {
 
 resource "openstack_fw_policy_v2" "policy_engress" {
   name = "firewall_egress_policy"
-
   rules = [
     openstack_fw_rule_v2.server_connection_rule.id,
   ]
@@ -206,6 +196,13 @@ resource "openstack_fw_group_v2" "group_1" {
 
 # -------------------------------------------------------------------------
 # AUTOESCALADO
+
+# Lista de los servidores a desplegar
+variable "server_list" {
+  description = "List of server numbers to create"
+  type        = list(string)
+  default     = ["1", "2", "3"]  
+}
 
 # Servidores
 resource "openstack_compute_instance_v2" "server_instance" {
@@ -243,7 +240,6 @@ resource "openstack_networking_port_v2" "port_net1" {
     subnet_id = openstack_networking_subnet_v2.subnet1.id
   }
 }
-
 resource "openstack_networking_port_v2" "port_net2" {
   for_each         = toset(var.server_list)
   name             = "port${each.value}_net2"

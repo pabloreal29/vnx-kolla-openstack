@@ -1,14 +1,8 @@
 #!/bin/bash
-
-ssh root@controller << 'EOF'
-
+mkdir -p /etc/kolla/config/swift
+mkdir -p /etc/kolla/config/swift/backups
 STORAGE_NODES=(10.0.0.31 10.0.0.32 10.0.0.33)
 KOLLA_SWIFT_BASE_IMAGE="kolla/swift-object-expirer:2024.1-ubuntu-jammy"
-
-mkdir -p /etc/kolla/config/swift
-chmod -R 777 /etc/kolla/config/swift
-mkdir -p /etc/kolla/config/swift/backups
-chmod -R 777 /etc/kolla/config/swift/backups
 
 # Create Object Ring
 docker run \
@@ -77,9 +71,9 @@ for ring in object account container; do
       /etc/kolla/config/swift/${ring}.builder rebalance;
 done
 
-EOF
-
 # Copiar archivos obtenidos al nodo admin
+chmod -R 777 /etc/kolla/config/swift
+chmod -R 777 /etc/kolla/config/swift/backups
 scp -r root@controller:/etc/kolla/config/swift/ /etc/kolla/config/
 
 

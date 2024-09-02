@@ -70,9 +70,9 @@ resources:
       description: Scale up if CPU > 80%
       metric: cpu
       aggregation_method: rate:mean
-      granularity: 60 # Con otros valores tarda todavia mas en configurarse la alarma
+      granularity: 60 
       evaluation_periods: 2
-      threshold: 800000000.0 # Uso de CPU del 80% -> Threshold = 10⁹ x Granularity x Percentage
+      threshold: 800000000.0 # Uso de CPU del 80%
       resource_type: instance
       comparison_operator: gt
       alarm_actions:
@@ -274,10 +274,6 @@ resources:
     properties:
       name: bbdd
       image: {get_param: bbdd_image}
-      # block_device_mapping_v2:
-      # - delete_on_termination: true
-      #   image: {get_param: bbdd_image}
-      #   volume_size: 5
       flavor: {get_param: bbdd_flavor}
       networks:
       - network: {get_resource: net2}
@@ -287,42 +283,6 @@ resources:
       user_data: |
         #!/bin/bash
         systemctl start mongod
-  
-  bbdd_trove:
-    type: OS::Trove::Instance
-    properties:
-      flavor: {get_param: bbdd_flavor}
-      size: 5
-      networks:
-      - network: {get_resource: net2}
-      - network: trove-mgmt-net
-      databases: [name: test]
-      datastore_version: 5.7.29
-      datastore_type: mysql
-      users: [{ name: trove, password: trove, databases: [test] }]
-  
-  port_trove:
-    type: OS::Neutron::Port
-    properties:
-      network: {get_resource: net2}
-      name: port_trove
-      security_groups: 
-        - {get_resource: security_group}
-      fixed_ips: 
-        - subnet: {get_resource: subnet2}
-
-  # my_volume:
-  #   type: OS::Cinder::Volume
-  #   properties:
-  #     size: 5
-  #     image: {get_param: bbdd_image}
-  
-  # my_volume_attachment:
-  #   type: OS::Cinder::VolumeAttachment
-  #   properties:
-  #     instance_uuid: {get_resource: bbdd}
-  #     volume_id: {get_resource: my_volume}
-
 
   ## OUTPUTS ------------------------------------------------
 

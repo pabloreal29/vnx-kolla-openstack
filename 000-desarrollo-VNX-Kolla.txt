@@ -1,9 +1,8 @@
 
 COMENTAR A DAVID:
-	- Enseñar gráficas Grafana (si falla hay imágenes en la carpeta de imágenes).
-	- Enseñar autoescalado (scripts Python, Terraform).
-	- Preguntar sobre arquitectura global, concretamente sobre cómo salen a Internet los servidores creados dentro de OpenStack.
-	
+	- RESUMEN IMÁGENES: controller y tf-node funcionan, pero network y compute1-3 no.
+	- filesystems3/ tiene docker parado y deshabilitado, filesystems1/ no, pero en ambos pasa lo mismo, controller SÍ y los otros NO.
+
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 	
 PROBLEMAS GITHUB
@@ -31,34 +30,59 @@ Para poder utilizar el plugin, vamos a volver a una version de grafana como 9.1.
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CONGELAR IMAGENES
 
+En las imagenes de filesystems3/ he hecho:
+	systemctl stop docker docker.socket
+	systemctl disable docker docker.socket
+
+
+Errores en filesystems2/:
+
+jul 24 12:17:41 compute2 systemd-udevd[410]: eth1: Failed to rename network interface 2 from 'eth0' to 'eth1': File exists
+jul 24 12:17:41 compute2 systemd-udevd[410]: eth0: Failed to process device, ignoring: File exists
+jul 24 12:17:41 compute2 kernel: e1000 0000:00:04.0 eth2: renamed from eth1
+jul 24 12:17:41 compute2 systemd-udevd[420]: Using default interface naming scheme 'v249'.
+jul 24 12:17:41 compute2 kernel: e1000 0000:00:07.0 eth9: renamed from ens7
+jul 24 12:17:41 compute2 systemd-udevd[411]: Using default interface naming scheme 'v249'.
+jul 24 12:17:41 compute2 systemd-udevd[411]: eth0: Failed to rename network interface 7 from 'eth5' to 'eth0': File exists
+jul 24 12:17:41 compute2 systemd-udevd[411]: eth5: Failed to process device, ignoring: File exists
+
 Se ha desplegado el escenario de kolla y se han realizado las acciones de crear la red externa, importar imágenes, importar configuración de Octavia y Trove y crear el usuario myuser.
 Todo esto antes de congelar las imágenes.
 
-Se despliega con: sudo vnx -f $OSTACKLAB_2 -v --create
+2024-07-22 11:25:33.981120+00:00 [error] <0.151660.0> Channel error on connection <0.151651.0> (10.0.0.11:39066 -> 10.0.0.11:5672, vhost: '/', user: 'openstack'), channel 1:
+2024-07-22 11:25:33.981120+00:00 [error] <0.151660.0> operation queue.declare caused a channel exception precondition_failed: inequivalent arg 'durable' for queue 'notifications.info' in vhost '/': received 'false' but current is 'true'
 
-	- compute1-3: [FAILED] Failed to start Set Up Additional Binary Formats. See 'systemctl status systemd-binfmt.service' for details.
-	
-	root@compute1:~# systemctl status systemd-binfmt.service
-× systemd-binfmt.service - Set Up Additional Binary Formats
-     Loaded: loaded (/lib/systemd/system/systemd-binfmt.service; static)
-     Active: failed (Result: exit-code) since Fri 2024-07-05 11:50:00 UTC; 56s ago
-       Docs: man:systemd-binfmt.service(8)
-             man:binfmt.d(5)
-             https://www.kernel.org/doc/html/latest/admin-guide/binfmt-misc.html
-             https://www.freedesktop.org/wiki/Software/systemd/APIFileSystems
-    Process: 483 ExecStart=/lib/systemd/systemd-binfmt (code=exited, status=1/FAILURE)
-   Main PID: 483 (code=exited, status=1/FAILURE)
-        CPU: 2ms
+2024-07-22 11:25:39.008120+00:00 [info] <0.151793.0> connection <0.151793.0> (10.0.0.11:36164 -> 10.0.0.11:5672) has a client-provided name: ceilometer-agent-notification:3615:9b2d33fa-56ca-496f-bf12-4ccec38f2bf8
+2024-07-22 11:25:39.008690+00:00 [info] <0.151793.0> connection <0.151793.0> (10.0.0.11:36164 -> 10.0.0.11:5672 - ceilometer-agent-notification:3615:9b2d33fa-56ca-496f-bf12-4ccec38f2bf8): user 'openstack' authenticated and granted access to vhost '/'
 
-jul 05 11:50:00 compute1 systemd[1]: Starting Set Up Additional Binary Formats...
-jul 05 11:50:00 compute1 systemd-binfmt[483]: Failed to check if /proc/sys/fs/binfmt_misc is mounted: Host is down
-jul 05 11:50:00 compute1 systemd[1]: systemd-binfmt.service: Main process exited, code=exited, status=1/FAILURE
-jul 05 11:50:00 compute1 systemd[1]: systemd-binfmt.service: Failed with result 'exit-code'.
-jul 05 11:50:00 compute1 systemd[1]: Failed to start Set Up Additional Binary Formats.
+2024-07-22 11:25:39.029459+00:00 [error] <0.151802.0> Channel error on connection <0.151793.0> (10.0.0.11:36164 -> 10.0.0.11:5672, vhost: '/', user: 'openstack'), channel 1:
+2024-07-22 11:25:39.029459+00:00 [error] <0.151802.0> operation exchange.declare caused a channel exception precondition_failed: inequivalent arg 'durable' for exchange 'swift' in vhost '/': received 'true' but current is 'false'
 
-	- network: no aparecen las interfaces de red.
-		   He probado a comentar esto y sale eth2 pero no eth1: <!-- <forwarding type="ip" />
-    									<forwarding type="ipv6" /> -->
+https://docs.openstack.org/nova/2024.1/reference/rpc.html
+
+durable
+
+    This flag determines the durability of both exchanges and queues; durable exchanges and queues remain active when a RabbitMQ server restarts. Non-durable exchanges/queues (transient exchanges/queues) are purged when a server restarts. It is worth noting that AMQP specifies that durable queues cannot bind to transient exchanges. Default is True.
+
+
+
+	rabbitmq.conf:
+	# NOTE(yoctozepto): rabbitmq uses the raw format (e.g. fd::) of IPv6 address;
+	# despite specifying port via colon, the url format (e.g. [fd::]) is not accepted
+	listeners.tcp.1 = 10.0.0.11:5672
+	cluster_partition_handling = pause_minority
+
+	management.listener.ip = 10.0.0.11
+	management.listener.port = 15672
+	management.load_definitions = /etc/rabbitmq/definitions.json
+
+	cluster_formation.peer_discovery_backend = rabbit_peer_discovery_classic_config
+	cluster_formation.classic_config.nodes.0 = rabbit@controller
+
+
+	prometheus.tcp.ip = 10.0.0.11
+	prometheus.tcp.port = 15692
+
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -615,12 +639,13 @@ Controller:
 DESCRIPCIÓN ESCENARIO
 
 El escenario es el siguiente:
-compute3: [10.0.0.32]
-compute2: [10.0.0.33]
-compute1: [10.0.0.31]
-network: [10.0.0.21]
-controller: [10.0.0.11]
-admin: [10.0.0.1]
+	tf-node:[10.0.0.41]
+	compute3: [10.0.0.32]
+	compute2: [10.0.0.33]
+	compute1: [10.0.0.31]
+	network: [10.0.0.21]
+	controller: [10.0.0.11]
+	admin: [10.0.0.1]
 
 
 pabloreal@giros21:~/vnx-kolla-openstack$ openstack --os-cloud kolla-admin service list
