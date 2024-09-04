@@ -1,19 +1,4 @@
 
-COMENTAR A DAVID:
-	- RESUMEN IMÁGENES: controller y tf-node funcionan, pero network y compute1-3 no.
-	- filesystems3/ tiene docker parado y deshabilitado, filesystems1/ no, pero en ambos pasa lo mismo, controller SÍ y los otros NO.
-
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	
-PROBLEMAS GITHUB
-	- Si N commits no se pueden subir porque se han incluido archivos que pesan demasiado y queremos mantener los cambios realizados en local, realizar lo siguiente:
-		Eliminar los archivos (para próximos commits añadir su carpeta a .gitignore)
-		git reset HEAD~N, donde N es el número de commits pendientes de completar
-		git add .
-		git commit -m "Recomitiendo cambios tras reset"
-		git push origin main --force
-		
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ALERTAS
  	
 apt-get install -Y python3-tk

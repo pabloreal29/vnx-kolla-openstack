@@ -42,47 +42,15 @@ kolla-ansible -i /root/kolla/share/kolla-ansible/ansible/inventory/multinode --c
 kolla-ansible -i /root/kolla/share/kolla-ansible/ansible/inventory/multinode --configdir /etc/kolla/ deploy
 kolla-ansible post-deploy
 ```
-3. The keys to access the cluster are located in /etc/kolla directory of admin node:
- - admin-openrc.sh: shellscript that populate environment variables with credentials and other data
- - clouds.yaml: this file can be copied to /etc/openstack or $HOME/.config/openstack directories to allow the execution of openstack client commands using "--os-cloud=kolla-admin" option. For example:
-```bash
-rm -rf $HOME/.config/openstack/
-mkdir $HOME/.config/openstack/
-scp root@admin:/etc/kolla/clouds.yaml $HOME/.config/openstack/
-openstack --os-cloud kolla-admin service list
+
+3. Realizar la configuración final de los servicios OpenStack, importar las imágenes, crear la red externa y los pares de claves:
 ```
-4. You can access the cluster by:
-- Graphical user interface, by connecting to http://10.0.0.11 from a web browser
-- Command line, by using openstack commands. For that, you have to install the OpenStack client:
-```bash
-pip install python-openstackclient -c https://releases.openstack.org/constraints/upper/2023.1
+./init-escenario
 ```
-5. Deploy Self-service network based testing scenarios:
- - Load vm images with:
-```bash
-sudo vnx -f $OSTACKLAB -x load-img
+
+4. Desplegar el escenario de autoescalado utilizando Terraform:
 ```
- - Create external network with:
-```bash
-sudo vnx -f $OSTACKLAB -x create-extnet
-```
-- Config NAT to provide Internet access to virtual machines (change eno1 by the name of the network interface that provides Internet connectivity to the host machine):
-```bash
-sudo vnx_config_nat ExtNet eno1
-```
-- Deploy simple demo scenario (one virtual network with one virtual machine):
-```bash
-sudo vnx -f $OSTACKLAB -x create-demo-scenario
-```
-- Deploy additional virtual machines:
-```bash
-sudo vnx -f $OSTACKLAB -x create-demo-vm2,create-demo-vm3,create-demo-vm4
-```
-6. Deploy Provider network based testing scenarios:
-```bash
-[ "$OSTACKLAB" == 'openstack_kolla_ansible.xml' ] && OSTACKVLANLAB=openstack_lab-vms-vlan.xml || OSTACKVLANLAB=openstack_lab-vms-vlan-vlan.xml
-sudo vnx -f $OSTACKLAB -x create-vlan-demo-scenario
-sudo vnx -f $OSTACKVLANLAB --create
+./deploy-escenario
 ```
 
 ### Cambios
