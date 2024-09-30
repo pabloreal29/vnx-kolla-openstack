@@ -11,11 +11,10 @@ SAMPLE_NUMBER = 3
 MAX_SERVERS = 5
 MIN_SERVERS = 2
 
-# Considerar valores estandar de RAM en torno a 165 MB
-HIGH_RAM_THRESHOLD = 300
-AVG_HIGH_RAM_THRESHOLD = 400
-LOW_RAM_THRESHOLD = 100
-AVG_LOW_RAM_THRESHOLD = 150
+HIGH_RAM_THRESHOLD = 350
+AVG_HIGH_RAM_THRESHOLD = 280
+LOW_RAM_THRESHOLD = 50
+AVG_LOW_RAM_THRESHOLD = 100
 
 # Define the path to your existing script
 create_tables_script = "deploy/create-ram-tables.py"
